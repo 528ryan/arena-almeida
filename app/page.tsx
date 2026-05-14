@@ -1,65 +1,125 @@
-import Image from "next/image";
+import Link from 'next/link'
+import { Trophy, LayoutGrid, GitMerge } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
+import LogoutButton from '@/app/components/LogoutButton'
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient()
+
+  const [{ data: jogosData }, { data: { user } }] = await Promise.all([
+    supabase.from('jogos').select('id, grupo, status').not('grupo', 'is', null),
+    supabase.auth.getUser(),
+  ])
+
+  const jogoIds = (jogosData ?? []).map(j => j.id as string)
+
+  let cravadosSet = new Set<string>()
+  if (user && jogoIds.length > 0) {
+    const { data: palpitesData } = await supabase
+      .from('palpites')
+      .select('jogo_id')
+      .eq('user_id', user.id)
+      .eq('travado', true)
+      .in('jogo_id', jogoIds)
+    cravadosSet = new Set((palpitesData ?? []).map(p => p.jogo_id as string))
+  }
+
+  // Resumo por grupo
+  const grupos = new Map<string, { total: number; cravados: number }>()
+  ;(jogosData ?? []).forEach(j => {
+    const g = j.grupo as string
+    if (!grupos.has(g)) grupos.set(g, { total: 0, cravados: 0 })
+    const s = grupos.get(g)!
+    s.total++
+    if (cravadosSet.has(j.id as string)) s.cravados++
+  })
+  const gruposOrdenados = Array.from(grupos.entries()).sort(([a], [b]) => a.localeCompare(b))
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* Header */}
+      <header className="bg-[#002776] px-4 py-4 sticky top-0 z-10 shadow-lg">
+        <div className="max-w-md mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#009C3B] flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-[#FFDF00]" />
+            </div>
+            <div>
+              <h1 className="text-white font-black text-xl leading-none">Arena Almeida</h1>
+              <p className="text-[#FFDF00] text-xs font-semibold">Bolão da Copa</p>
+            </div>
+          </div>
+          <LogoutButton />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+      </header>
+
+      <main className="flex-1 max-w-md mx-auto w-full px-4 py-6 flex flex-col gap-5">
+
+        {/* Seção: Fase de Grupos */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <LayoutGrid className="w-5 h-5 text-[#002776]" strokeWidth={2.5} />
+            <h2 className="text-[#002776] font-black text-lg">Fase de Grupos</h2>
+          </div>
+
+          {gruposOrdenados.length === 0 ? (
+            <p className="text-center text-gray-400 py-8">Nenhum grupo cadastrado ainda.</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2.5">
+              {gruposOrdenados.map(([letra, { total, cravados }]) => {
+                const progresso = total > 0 ? Math.round((cravados / total) * 100) : 0
+                return (
+                  <Link key={letra} href={`/grupo/${letra}`}>
+                    <div className="rounded-2xl bg-white border border-gray-200 p-3 shadow-sm active:scale-95 transition-transform flex flex-col items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-[#002776] text-white font-black text-base flex items-center justify-center">
+                        {letra}
+                      </div>
+                      <p className="font-black text-[#002776] text-sm leading-none">Grupo {letra}</p>
+                      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#009C3B] rounded-full transition-all"
+                          style={{ width: `${progresso}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-gray-400">
+                        {cravados}/{total} cravados
+                      </p>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Seção: Mata-Mata */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <GitMerge className="w-5 h-5 text-[#002776]" strokeWidth={2.5} />
+            <h2 className="text-[#002776] font-black text-lg">Mata-Mata</h2>
+          </div>
+
+          <Link href="/mata-mata">
+            <div className="rounded-2xl overflow-hidden shadow-md active:scale-95 transition-transform">
+              <div className="bg-gradient-to-r from-[#002776] to-[#009C3B] px-5 py-5 flex items-center justify-between">
+                <div>
+                  <p className="text-white font-black text-lg leading-none mb-1">Fase Eliminatória</p>
+                  <p className="text-[#FFDF00] text-xs font-semibold">
+                    Fase 32 · Oitavas · Quartas · Semis · Final
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-[#FFDF00] flex items-center justify-center">
+                  <Trophy className="w-6 h-6 text-[#002776]" />
+                </div>
+              </div>
+            </div>
+          </Link>
+        </section>
       </main>
+
+      <footer className="text-center py-4 text-xs text-gray-400 pb-20">
+        Arena Almeida · Bolão da Família
+      </footer>
     </div>
-  );
+  )
 }
