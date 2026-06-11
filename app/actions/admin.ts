@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { verificarENotificarRanking } from '@/lib/notifications'
 
@@ -22,8 +23,9 @@ function revalidateAll() {
 }
 
 export async function fecharJogo(jogoId: number, placar_a: number, placar_b: number) {
-  const supabase = await assertAdmin()
-  const { error } = await supabase
+  await assertAdmin()
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
     .from('jogos')
     .update({ placar_a, placar_b, status: 'encerrado' })
     .eq('id', jogoId)
@@ -34,8 +36,9 @@ export async function fecharJogo(jogoId: number, placar_a: number, placar_b: num
 }
 
 export async function reabrirJogo(jogoId: number) {
-  const supabase = await assertAdmin()
-  const { error } = await supabase
+  await assertAdmin()
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
     .from('jogos')
     .update({ placar_a: null, placar_b: null, status: 'pendente' })
     .eq('id', jogoId)
@@ -44,8 +47,9 @@ export async function reabrirJogo(jogoId: number) {
 }
 
 export async function atualizarTimes(jogoId: number, time_a: string, time_b: string) {
-  const supabase = await assertAdmin()
-  const { error } = await supabase
+  await assertAdmin()
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
     .from('jogos')
     .update({ time_a, time_b })
     .eq('id', jogoId)
@@ -55,8 +59,9 @@ export async function atualizarTimes(jogoId: number, time_a: string, time_b: str
 }
 
 export async function atualizarPago(userId: string, pago: boolean) {
-  const supabase = await assertAdmin()
-  const { error } = await supabase
+  await assertAdmin()
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
     .from('perfis')
     .update({ pago })
     .eq('id', userId)
