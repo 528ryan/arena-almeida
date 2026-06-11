@@ -19,20 +19,22 @@ type GameCardProps = {
 
 type SaveStatus = 'idle' | 'saving' | 'saved'
 
-/** Retorna true se o prazo de edição já passou (< 6h antes do jogo) */
-function isPrazoEncerrado(dataHora: string): boolean {
-  const deadline = new Date(dataHora)
-  deadline.setHours(deadline.getHours() - 6)
-  return new Date() >= deadline
+/** Retorna o deadline de edição: prazo_edicao se definido, senão data_hora - 6h */
+function getDeadline(jogo: { data_hora: string; prazo_edicao: string | null }): Date {
+  if (jogo.prazo_edicao) return new Date(jogo.prazo_edicao)
+  const d = new Date(jogo.data_hora)
+  d.setHours(d.getHours() - 6)
+  return d
 }
 
-/** Formata o prazo limite de edição */
-function formatarPrazo(dataHora: string): string {
-  const deadline = new Date(dataHora)
-  deadline.setHours(deadline.getHours() - 6)
+function isPrazoEncerrado(jogo: { data_hora: string; prazo_edicao: string | null }): boolean {
+  return new Date() >= getDeadline(jogo)
+}
+
+function formatarPrazo(jogo: { data_hora: string; prazo_edicao: string | null }): string {
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-  }).format(deadline)
+  }).format(getDeadline(jogo))
 }
 
 export default function GameCard({ jogo, palpiteInicial, userId, nomeUsuario, avatarUrl }: GameCardProps) {
@@ -42,7 +44,7 @@ export default function GameCard({ jogo, palpiteInicial, userId, nomeUsuario, av
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
 
   const isEncerrado = jogo.status === 'encerrado'
-  const prazoEncerrado = isPrazoEncerrado(jogo.data_hora)
+  const prazoEncerrado = isPrazoEncerrado(jogo)
   // O seletor fica bloqueado se: jogo encerrado, prazo esgotado, ou palpite travado
   const bloqueado = isEncerrado || prazoEncerrado || travado
 
@@ -160,7 +162,7 @@ export default function GameCard({ jogo, palpiteInicial, userId, nomeUsuario, av
           ) : !isEncerrado && !prazoEncerrado && !travado ? (
             <span className="text-gray-400 flex items-center gap-1 text-xs">
               <Clock className="w-3.5 h-3.5" />
-              Crave até {formatarPrazo(jogo.data_hora)}
+              Crave até {formatarPrazo(jogo)}
             </span>
           ) : (
             <span />

@@ -3,6 +3,7 @@ export type Jogo = {
   time_a: string
   time_b: string
   data_hora: string
+  prazo_edicao: string | null
   placar_a: number | null
   placar_b: number | null
   status: 'pendente' | 'encerrado'

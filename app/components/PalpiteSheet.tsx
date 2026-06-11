@@ -8,18 +8,21 @@ import FlagImg from './FlagImg'
 import { compartilharCard } from '@/lib/shareCard'
 import type { Jogo, Palpite } from '@/types'
 
-function isPrazoEncerrado(dataHora: string): boolean {
-  const deadline = new Date(dataHora)
-  deadline.setHours(deadline.getHours() - 6)
-  return new Date() >= deadline
+function getDeadline(jogo: { data_hora: string; prazo_edicao: string | null }): Date {
+  if (jogo.prazo_edicao) return new Date(jogo.prazo_edicao)
+  const d = new Date(jogo.data_hora)
+  d.setHours(d.getHours() - 6)
+  return d
 }
 
-function formatarPrazo(dataHora: string): string {
-  const deadline = new Date(dataHora)
-  deadline.setHours(deadline.getHours() - 6)
+function isPrazoEncerrado(jogo: { data_hora: string; prazo_edicao: string | null }): boolean {
+  return new Date() >= getDeadline(jogo)
+}
+
+function formatarPrazo(jogo: { data_hora: string; prazo_edicao: string | null }): string {
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-  }).format(deadline)
+  }).format(getDeadline(jogo))
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved'
@@ -42,7 +45,7 @@ export default function PalpiteSheet({ jogo, palpiteInicial, userId, onClose, no
   const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'downloaded'>('idle')
 
   const isEncerrado   = jogo.status === 'encerrado'
-  const prazoEncerrado = isPrazoEncerrado(jogo.data_hora)
+  const prazoEncerrado = isPrazoEncerrado(jogo)
   const bloqueado      = isEncerrado || prazoEncerrado || travado
 
   // Slide-in ao montar
@@ -185,7 +188,7 @@ export default function PalpiteSheet({ jogo, palpiteInicial, userId, onClose, no
           ) : !isEncerrado && !prazoEncerrado && !travado ? (
             <p className="text-xs text-gray-400 flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" />
-              Crave até {formatarPrazo(jogo.data_hora)}
+              Crave até {formatarPrazo(jogo)}
             </p>
           ) : null}
         </div>
