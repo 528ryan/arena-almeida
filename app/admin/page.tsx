@@ -4,6 +4,7 @@ import { ShieldCheck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AdminJogos from './AdminJogos'
 import AdminParticipantes from './AdminParticipantes'
+import AdminLockToggle from './AdminLockToggle'
 import type { Jogo, Perfil } from '@/types'
 
 export default async function AdminPage({
@@ -31,7 +32,12 @@ export default async function AdminPage({
   const jogos  = (jogosData  ?? []) as Jogo[]
   const perfis = (perfisData ?? []) as Perfil[]
 
-  const enc      = jogos.filter(j => j.status === 'encerrado').length
+  const enc           = jogos.filter(j => j.status === 'encerrado').length
+  const pendentes     = jogos.filter(j => j.status !== 'encerrado')
+  const agora         = new Date()
+  const todosTravados = pendentes.length > 0 && pendentes.every(
+    j => j.prazo_edicao && new Date(j.prazo_edicao) <= agora
+  )
   const pagantes = perfis.filter(p => p.pago).length
 
   return (
@@ -74,6 +80,7 @@ export default async function AdminPage({
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6 pb-28">
+        <AdminLockToggle travado={todosTravados} totalPendentes={pendentes.length} />
         {abaAtiva === 'jogos'
           ? <AdminJogos jogos={jogos} />
           : <AdminParticipantes perfis={perfis} />

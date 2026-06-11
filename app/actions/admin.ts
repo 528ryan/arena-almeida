@@ -58,6 +58,30 @@ export async function atualizarTimes(jogoId: number, time_a: string, time_b: str
   revalidatePath('/mata-mata')
 }
 
+export async function destravartodosPalpites() {
+  await assertAdmin()
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
+    .from('jogos')
+    .update({ prazo_edicao: null })
+    .neq('status', 'encerrado')
+  if (error) throw error
+  revalidatePath('/admin')
+  revalidatePath('/')
+}
+
+export async function travarTodosPalpites() {
+  await assertAdmin()
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
+    .from('jogos')
+    .update({ prazo_edicao: new Date().toISOString() })
+    .neq('status', 'encerrado')
+  if (error) throw error
+  revalidatePath('/admin')
+  revalidatePath('/')
+}
+
 export async function atualizarPago(userId: string, pago: boolean) {
   await assertAdmin()
   const adminClient = createAdminClient()
