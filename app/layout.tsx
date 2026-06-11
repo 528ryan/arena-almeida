@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/app/components/BottomNav";
+import IOSInstallBanner from "@/app/components/IOSInstallBanner";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -41,6 +42,7 @@ export default function RootLayout({
       <body className="min-h-full bg-[#f0fdf4] pb-16">
         {children}
         <BottomNav />
+        <IOSInstallBanner />
       </body>
     </html>
   );
