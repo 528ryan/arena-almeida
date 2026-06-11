@@ -8,18 +8,18 @@ import type { Jogo, Palpite } from '@/types'
 
 // ─── Constantes de layout ─────────────────────────────────────────────────
 const NODE_H = 48
-const NODE_W = 112
+const NODE_W = 108
 const GAP    = 6
-const CONN_W = 20
+const CONN_W = 18
 const U      = NODE_H + GAP // 54
 
-// ─── Posições verticais pré-calculadas ────────────────────────────────────
+// ─── Posições verticais pré-calculadas (5 rounds, começa com 16) ──────────
 function buildPositions(): number[][] {
   const rounds: number[][] = [
-    Array.from({ length: 8 }, (_, i) => i * U),
+    Array.from({ length: 16 }, (_, i) => i * U),
   ]
-  for (let r = 1; r < 4; r++) {
-    const prev = rounds[r - 1]
+  for (let r = 1; r < 5; r++) {
+    const prev  = rounds[r - 1]
     const count = prev.length / 2
     rounds.push(
       Array.from({ length: count }, (_, j) =>
@@ -31,9 +31,10 @@ function buildPositions(): number[][] {
 }
 
 const POSITIONS = buildPositions()
-const TOTAL_H   = 7 * U + NODE_H // 426px
+const TOTAL_H   = 15 * U + NODE_H // 858px
 
 const ROUNDS = [
+  { fase: '16 avos de Final', label: '16 avos' },
   { fase: 'Oitavas de Final', label: 'Oitavas' },
   { fase: 'Quartas de Final', label: 'Quartas' },
   { fase: 'Semifinal',        label: 'Semis'   },
@@ -74,12 +75,8 @@ function GameNode({ jogo, hasPalpite, travado, onClick }: GameNodeProps) {
         active:scale-95 transition-transform cursor-pointer
         ${enc ? 'border-[#009C3B]' : travado ? 'border-[#009C3B]/60' : 'border-gray-200 bg-white'}`}
     >
-      {/* Indicador de palpite salvo */}
       {hasPalpite && (
-        <span
-          className="absolute top-1 right-1 flex items-center justify-center"
-          style={{ pointerEvents: 'none' }}
-        >
+        <span className="absolute top-1 right-1 flex items-center justify-center" style={{ pointerEvents: 'none' }}>
           {travado
             ? <Lock className="w-2.5 h-2.5 text-[#009C3B]" />
             : <span className="w-2 h-2 rounded-full bg-[#009C3B] block" />
@@ -93,7 +90,7 @@ function GameNode({ jogo, hasPalpite, travado, onClick }: GameNodeProps) {
           ${winnerA ? 'bg-green-50 font-black text-[#002776]' : 'bg-white'}`}
         style={{ height: NODE_H / 2 }}
       >
-        <span className={`truncate max-w-[72px] ${isPlaceholder(jogo.time_a) && !enc ? 'text-gray-400' : ''}`}>
+        <span className={`truncate max-w-[68px] ${isPlaceholder(jogo.time_a) && !enc ? 'text-gray-400' : ''}`}>
           <FlagImg nome={jogo.time_a} size={12} className="mr-0.5" />{jogo.time_a}
         </span>
         {enc && <span className="font-black text-[#002776] ml-1 shrink-0">{jogo.placar_a}</span>}
@@ -105,7 +102,7 @@ function GameNode({ jogo, hasPalpite, travado, onClick }: GameNodeProps) {
           ${winnerB ? 'bg-green-50 font-black text-[#002776]' : 'bg-white text-gray-500'}`}
         style={{ height: NODE_H / 2 }}
       >
-        <span className={`truncate max-w-[72px] ${isPlaceholder(jogo.time_b) && !enc ? 'text-gray-400' : ''}`}>
+        <span className={`truncate max-w-[68px] ${isPlaceholder(jogo.time_b) && !enc ? 'text-gray-400' : ''}`}>
           <FlagImg nome={jogo.time_b} size={12} className="mr-0.5" />{jogo.time_b}
         </span>
         {enc && (
@@ -152,20 +149,20 @@ interface Props {
 export default function BracketView({ jogos, palpitesPorJogo, userId, nomeUsuario, avatarUrl }: Props) {
   const [jogoSelecionado, setJogoSelecionado] = useState<Jogo | null>(null)
 
-  const rounds = ROUNDS.map(({ fase }) =>
-    jogos.filter(j => j.fase === fase)
-  )
+  const rounds = ROUNDS.map(({ fase }) => jogos.filter(j => j.fase === fase))
+
+  const totalW = ROUNDS.length * NODE_W + (ROUNDS.length - 1) * CONN_W
 
   return (
     <>
       <div className="overflow-x-auto -mx-4 px-4 pb-2">
         {/* Cabeçalho das colunas */}
-        <div className="flex mb-2" style={{ minWidth: 4 * NODE_W + 3 * CONN_W }}>
+        <div className="flex mb-2" style={{ minWidth: totalW }}>
           {ROUNDS.map(({ label }, ri) => (
             <div key={label} className="flex items-center" style={{ flexShrink: 0 }}>
               <div
                 style={{ width: NODE_W }}
-                className="text-center text-[10px] font-black text-[#002776] uppercase tracking-widest"
+                className="text-center text-[9px] font-black text-[#002776] uppercase tracking-widest"
               >
                 {label}
               </div>
@@ -175,7 +172,7 @@ export default function BracketView({ jogos, palpitesPorJogo, userId, nomeUsuari
         </div>
 
         {/* Bracket */}
-        <div className="relative" style={{ height: TOTAL_H, minWidth: 4 * NODE_W + 3 * CONN_W }}>
+        <div className="relative" style={{ height: TOTAL_H, minWidth: totalW }}>
           {ROUNDS.map(({ fase }, ri) => {
             const round    = rounds[ri]
             const count    = POSITIONS[ri].length
@@ -184,13 +181,10 @@ export default function BracketView({ jogos, palpitesPorJogo, userId, nomeUsuari
             return (
               <div key={fase}>
                 {Array.from({ length: count }, (_, j) => {
-                  const jogo       = round[j]
-                  const palpite    = jogo ? palpitesPorJogo[jogo.id] : undefined
+                  const jogo    = round[j]
+                  const palpite = jogo ? palpitesPorJogo[jogo.id] : undefined
                   return (
-                    <div
-                      key={j}
-                      style={{ position: 'absolute', top: POSITIONS[ri][j], left: leftBase }}
-                    >
+                    <div key={j} style={{ position: 'absolute', top: POSITIONS[ri][j], left: leftBase }}>
                       <GameNode
                         jogo={jogo}
                         hasPalpite={!!palpite}
@@ -212,7 +206,6 @@ export default function BracketView({ jogos, palpitesPorJogo, userId, nomeUsuari
         </div>
       </div>
 
-      {/* Bottom sheet de palpite */}
       {jogoSelecionado && (
         <PalpiteSheet
           jogo={jogoSelecionado}

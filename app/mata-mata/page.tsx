@@ -6,7 +6,7 @@ import GameCard from '@/app/components/GameCard'
 import type { Jogo, Palpite } from '@/types'
 
 const FASE_ORDEM = [
-  'Fase de 32',
+  '16 avos de Final',
   'Oitavas de Final',
   'Quartas de Final',
   'Semifinal',
@@ -15,7 +15,7 @@ const FASE_ORDEM = [
 ]
 
 const FASE_ICONE: Record<string, string> = {
-  'Fase de 32':          '⚔️',
+  '16 avos de Final':    '⚔️',
   'Oitavas de Final':    '🥊',
   'Quartas de Final':    '🏅',
   'Semifinal':           '🌟',
@@ -53,9 +53,9 @@ export default async function MataMataPage() {
     (palpitesData ?? []).map((p: Palpite) => [p.jogo_id, p])
   )
 
-  // Jogos para o bracket visual (Oitavas → Final)
+  // Jogos para o bracket visual (16 avos → Final)
   const jogosParaBracket = jogos.filter(j =>
-    ['Oitavas de Final', 'Quartas de Final', 'Semifinal', 'Final'].includes(j.fase ?? '')
+    ['16 avos de Final', 'Oitavas de Final', 'Quartas de Final', 'Semifinal', 'Final'].includes(j.fase ?? '')
   )
 
   // Fases com jogos (excluindo as do bracket visual, exibidas separadamente abaixo)
