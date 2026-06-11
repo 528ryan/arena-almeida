@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { SELECOES } from '@/lib/selecoes'
 import FlagImg from '@/app/components/FlagImg'
 import MoneyRain from '@/app/components/MoneyRain'
+import EstatisticasPerfil from '@/app/components/EstatisticasPerfil'
 import type { Perfil, Jogo, Palpite } from '@/types'
 
 type PalpiteComJogo = Palpite & { jogo: Jogo | null }
@@ -200,6 +201,9 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
             </div>
           ))}
         </section>
+
+        {/* Estatísticas */}
+        <EstatisticasPerfil palpites={palpites} selecaoFavorita={perfil.selecao_favorita} />
 
         {/* Palpites */}
         <section>

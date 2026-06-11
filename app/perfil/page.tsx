@@ -10,6 +10,7 @@ import PushButton from '@/app/components/PushButton'
 import SelecionarSelecao from './SelecionarSelecao'
 import FlagImg from '@/app/components/FlagImg'
 import MoneyRain from '@/app/components/MoneyRain'
+import EstatisticasPerfil from '@/app/components/EstatisticasPerfil'
 import type { Perfil, Jogo, Palpite } from '@/types'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────
@@ -212,6 +213,9 @@ export default async function PerfilPage() {
             </div>
           ))}
         </section>
+
+        {/* Estatísticas */}
+        <EstatisticasPerfil palpites={palpites} selecaoFavorita={perfil.selecao_favorita} />
 
         {/* Histórico */}
         <section>
