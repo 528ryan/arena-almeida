@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Trophy, LayoutGrid, GitMerge } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import LogoutButton from '@/app/components/LogoutButton'
+import ContadorRegressivo from '@/app/components/ContadorRegressivo'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -54,6 +55,8 @@ export default async function Home() {
       </header>
 
       <main className="flex-1 max-w-md mx-auto w-full px-4 py-6 flex flex-col gap-5">
+
+        <ContadorRegressivo />
 
         {/* Seção: Fase de Grupos */}
         <section>
