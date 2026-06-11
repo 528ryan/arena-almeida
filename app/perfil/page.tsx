@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { Lock, ShieldCheck } from 'lucide-react'
+import { Lock, ShieldCheck, DollarSign } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { SELECOES } from '@/lib/selecoes'
@@ -8,6 +8,8 @@ import FotoUpload from './FotoUpload'
 import SairButton from './SairButton'
 import PushButton from '@/app/components/PushButton'
 import SelecionarSelecao from './SelecionarSelecao'
+import FlagImg from '@/app/components/FlagImg'
+import MoneyRain from '@/app/components/MoneyRain'
 import type { Perfil, Jogo, Palpite } from '@/types'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────
@@ -91,13 +93,14 @@ export default async function PerfilPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: perfilData }, { data: palpitesData }] = await Promise.all([
+  const [{ data: perfilData }, { data: palpitesData }, { data: rankingData }] = await Promise.all([
     supabase.from('perfis').select('*').eq('id', user.id).single(),
     supabase
       .from('palpites')
       .select('*, jogo:jogos(id, time_a, time_b, data_hora, placar_a, placar_b, status, grupo, fase)')
       .eq('user_id', user.id)
       .order('criado_em', { ascending: false }),
+    supabase.from('perfis').select('id, pontos').order('pontos', { ascending: false }),
   ])
 
   const perfil   = perfilData as Perfil | null
@@ -108,21 +111,26 @@ export default async function PerfilPage() {
   const encerrados = palpites.filter(p => p.jogo?.status === 'encerrado')
   const acertos    = encerrados.filter(p => p.pontos === 3).length
   const parciais   = encerrados.filter(p => p.pontos === 1).length
+  const taxaAcerto = encerrados.length > 0 ? Math.round((acertos / encerrados.length) * 100) : null
+
+  const posicao = (rankingData ?? []).findIndex(p => p.id === user.id) + 1
 
   // Tema da seleção favorita
-  const tema      = perfil.selecao_favorita ? SELECOES[perfil.selecao_favorita] : null
-  const corFundo  = tema?.cor1  ?? '#002776'
-  const corAcento = tema?.cor2  ?? '#FFDF00'
+  const tema        = perfil.selecao_favorita ? SELECOES[perfil.selecao_favorita] : null
+  const corFundo    = tema?.cor1  ?? '#002776'
+  const corAcento   = tema?.cor2  ?? '#FFDF00'
   const textoAcento = tema?.texto ?? 'escuro'
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header temático */}
       <header
-        className="px-4 pt-10 pb-8 shadow-lg"
+        className="px-4 pt-10 pb-8 shadow-lg relative overflow-hidden"
         style={{ background: `linear-gradient(160deg, ${corFundo} 0%, ${corFundo}cc 100%)` }}
       >
-        <div className="max-w-md mx-auto flex flex-col items-center gap-3">
+        {perfil.pago && <MoneyRain />}
+
+        <div className="max-w-md mx-auto flex flex-col items-center gap-3 relative">
           <FotoUpload
             userId={user.id}
             fotoUrl={perfil.foto_url}
@@ -130,16 +138,40 @@ export default async function PerfilPage() {
           />
           <EditarNome nomeInicial={perfil.nome} />
 
-          {/* Badge de pontos temático */}
-          <div
-            className="flex items-center gap-2 px-5 py-1.5 rounded-full shadow"
-            style={{
-              backgroundColor: corAcento,
-              color: textoAcento === 'escuro' ? '#1a1a1a' : '#ffffff',
-            }}
-          >
-            <span className="font-black text-xl tabular-nums">{perfil.pontos}</span>
-            <span className="font-semibold text-sm">pontos</span>
+          {/* Badge apostador */}
+          {perfil.pago && (
+            <span className="flex items-center gap-1 bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full">
+              <DollarSign className="w-3 h-3" />
+              Apostador
+            </span>
+          )}
+
+          {/* Seleção favorita */}
+          {perfil.selecao_favorita && (
+            <span className="flex items-center gap-1.5 text-white/70 text-xs font-semibold">
+              <FlagImg nome={perfil.selecao_favorita} size={16} />
+              {perfil.selecao_favorita}
+            </span>
+          )}
+
+          {/* Badge de pontos + posição */}
+          <div className="flex items-center gap-3">
+            <div
+              className="flex items-center gap-2 px-5 py-1.5 rounded-full shadow"
+              style={{
+                backgroundColor: corAcento,
+                color: textoAcento === 'escuro' ? '#1a1a1a' : '#ffffff',
+              }}
+            >
+              <span className="font-black text-xl tabular-nums">{perfil.pontos}</span>
+              <span className="font-semibold text-sm">pontos</span>
+            </div>
+            {posicao > 0 && (
+              <div className="flex items-center gap-1 bg-white/15 px-3 py-1.5 rounded-full">
+                <span className="text-white font-black text-sm tabular-nums">{posicao}º</span>
+                <span className="text-white/60 text-xs font-semibold">lugar</span>
+              </div>
+            )}
           </div>
 
           {/* Picker de seleção favorita */}
@@ -167,14 +199,15 @@ export default async function PerfilPage() {
       <main className="flex-1 max-w-md mx-auto w-full px-4 py-6 flex flex-col gap-6">
 
         {/* Estatísticas rápidas */}
-        <section className="grid grid-cols-3 gap-3">
+        <section className="grid grid-cols-4 gap-2">
           {[
-            { label: 'Palpites',  valor: palpites.length, cor: 'text-[#002776]' },
-            { label: 'Exatos',    valor: acertos,         cor: 'text-[#009C3B]' },
-            { label: 'Parciais',  valor: parciais,        cor: 'text-yellow-600' },
+            { label: 'Palpites',  valor: String(palpites.length), cor: 'text-[#002776]' },
+            { label: 'Exatos',    valor: String(acertos),         cor: 'text-[#009C3B]' },
+            { label: 'Parciais',  valor: String(parciais),        cor: 'text-yellow-600' },
+            { label: 'Acerto',    valor: taxaAcerto !== null ? `${taxaAcerto}%` : '—', cor: 'text-[#002776]' },
           ].map(({ label, valor, cor }) => (
             <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 text-center">
-              <p className={`font-black text-2xl tabular-nums ${cor}`}>{valor}</p>
+              <p className={`font-black text-xl tabular-nums ${cor}`}>{valor}</p>
               <p className="text-[10px] text-gray-400 font-semibold mt-0.5">{label}</p>
             </div>
           ))}
