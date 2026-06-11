@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { Trophy } from 'lucide-react'
+import { Trophy, Crown } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import type { Perfil } from '@/types'
 
@@ -142,7 +142,10 @@ function PodiumCard({ perfil, posicao, isMe, grande = false }: {
 }) {
   return (
     <div className="flex flex-col items-center gap-2">
-      <span className="text-2xl">{MEDALHAS[posicao]}</span>
+      {posicao === 0
+        ? <Crown className="w-6 h-6 text-[#FFDF00] drop-shadow" />
+        : <span className="text-2xl">{MEDALHAS[posicao]}</span>
+      }
       <div className={`rounded-full border-4 ${
         isMe ? 'border-[#009C3B]' : posicao === 0 ? 'border-[#FFDF00]' : 'border-gray-300'
       }`}>

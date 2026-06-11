@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import { Trophy, LayoutGrid, GitMerge } from 'lucide-react'
+import { Trophy, GitMerge, LayoutGrid } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import LogoutButton from '@/app/components/LogoutButton'
 import ContadorRegressivo from '@/app/components/ContadorRegressivo'
+import GruposFiltro from '@/app/components/GruposFiltro'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -14,27 +15,41 @@ export default async function Home() {
 
   const jogoIds = (jogosData ?? []).map(j => j.id as string)
 
-  let cravadosSet = new Set<string>()
+  let cravadosSet  = new Set<string>()
+  let palpitesSet  = new Set<string>()
+
   if (user && jogoIds.length > 0) {
-    const { data: palpitesData } = await supabase
-      .from('palpites')
-      .select('jogo_id')
-      .eq('user_id', user.id)
-      .eq('travado', true)
-      .in('jogo_id', jogoIds)
-    cravadosSet = new Set((palpitesData ?? []).map(p => p.jogo_id as string))
+    const [{ data: cravadosData }, { data: todosPalpitesData }] = await Promise.all([
+      supabase
+        .from('palpites')
+        .select('jogo_id')
+        .eq('user_id', user.id)
+        .eq('travado', true)
+        .in('jogo_id', jogoIds),
+      supabase
+        .from('palpites')
+        .select('jogo_id')
+        .eq('user_id', user.id)
+        .in('jogo_id', jogoIds),
+    ])
+    cravadosSet = new Set((cravadosData ?? []).map(p => p.jogo_id as string))
+    palpitesSet = new Set((todosPalpitesData ?? []).map(p => p.jogo_id as string))
   }
 
   // Resumo por grupo
-  const grupos = new Map<string, { total: number; cravados: number }>()
+  const grupos = new Map<string, { total: number; cravados: number; semPalpite: number }>()
   ;(jogosData ?? []).forEach(j => {
     const g = j.grupo as string
-    if (!grupos.has(g)) grupos.set(g, { total: 0, cravados: 0 })
+    if (!grupos.has(g)) grupos.set(g, { total: 0, cravados: 0, semPalpite: 0 })
     const s = grupos.get(g)!
     s.total++
     if (cravadosSet.has(j.id as string)) s.cravados++
+    if (!palpitesSet.has(j.id as string) && j.status !== 'encerrado') s.semPalpite++
   })
-  const gruposOrdenados = Array.from(grupos.entries()).sort(([a], [b]) => a.localeCompare(b))
+
+  const gruposOrdenados = Array.from(grupos.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([letra, dados]) => ({ letra, ...dados }))
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -68,30 +83,7 @@ export default async function Home() {
           {gruposOrdenados.length === 0 ? (
             <p className="text-center text-gray-400 py-8">Nenhum grupo cadastrado ainda.</p>
           ) : (
-            <div className="grid grid-cols-3 gap-2.5">
-              {gruposOrdenados.map(([letra, { total, cravados }]) => {
-                const progresso = total > 0 ? Math.round((cravados / total) * 100) : 0
-                return (
-                  <Link key={letra} href={`/grupo/${letra}`}>
-                    <div className="rounded-2xl bg-white border border-gray-200 p-3 shadow-sm active:scale-95 transition-transform flex flex-col items-center gap-2">
-                      <div className="w-10 h-10 rounded-full bg-[#002776] text-white font-black text-base flex items-center justify-center">
-                        {letra}
-                      </div>
-                      <p className="font-black text-[#002776] text-sm leading-none">Grupo {letra}</p>
-                      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[#009C3B] rounded-full transition-all"
-                          style={{ width: `${progresso}%` }}
-                        />
-                      </div>
-                      <p className="text-[10px] text-gray-400">
-                        {cravados}/{total} cravados
-                      </p>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
+            <GruposFiltro grupos={gruposOrdenados} />
           )}
         </section>
 

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { Lock, ShieldCheck, DollarSign } from 'lucide-react'
+import { Lock, ShieldCheck, DollarSign, Crown } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { SELECOES } from '@/lib/selecoes'
@@ -138,6 +138,14 @@ export default async function PerfilPage() {
             nome={perfil.nome}
           />
           <EditarNome nomeInicial={perfil.nome} />
+
+          {/* Coroa do líder */}
+          {posicao === 1 && (
+            <span className="flex items-center gap-1 bg-[#FFDF00]/20 text-[#FFDF00] text-xs font-bold px-3 py-1 rounded-full">
+              <Crown className="w-3 h-3" />
+              Líder do ranking
+            </span>
+          )}
 
           {/* Badge apostador */}
           {perfil.pago && (

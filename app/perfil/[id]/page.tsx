@@ -1,5 +1,5 @@
 import { redirect, notFound } from 'next/navigation'
-import { ArrowLeft, Lock, DollarSign } from 'lucide-react'
+import { ArrowLeft, Lock, DollarSign, Crown } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
@@ -147,6 +147,14 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
 
           {/* Nome */}
           <p className="text-white font-black text-2xl text-center">{perfil.nome}</p>
+
+          {/* Coroa do líder */}
+          {posicao === 1 && (
+            <span className="flex items-center gap-1 bg-[#FFDF00]/20 text-[#FFDF00] text-xs font-bold px-3 py-1 rounded-full">
+              <Crown className="w-3 h-3" />
+              Líder do ranking
+            </span>
+          )}
 
           {/* Badge apostador */}
           {perfil.pago && (
