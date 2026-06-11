@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { verificarENotificarRanking } from '@/lib/notifications'
 
 async function assertAdmin() {
   const supabase = await createClient()
@@ -28,6 +29,8 @@ export async function fecharJogo(jogoId: number, placar_a: number, placar_b: num
     .eq('id', jogoId)
   if (error) throw error
   revalidateAll()
+  // Notifica se o top 3 mudou (fire-and-forget, não bloqueia a resposta)
+  verificarENotificarRanking().catch(() => {})
 }
 
 export async function reabrirJogo(jogoId: number) {

@@ -6,6 +6,7 @@ import { SELECOES } from '@/lib/selecoes'
 import EditarNome from './EditarNome'
 import FotoUpload from './FotoUpload'
 import SairButton from './SairButton'
+import PushButton from '@/app/components/PushButton'
 import SelecionarSelecao from './SelecionarSelecao'
 import type { Perfil, Jogo, Palpite } from '@/types'
 
@@ -195,6 +196,11 @@ export default async function PerfilPage() {
               ))}
             </div>
           )}
+        </section>
+
+        {/* Notificações */}
+        <section className="pb-2">
+          <PushButton />
         </section>
 
         {/* Sair */}
