@@ -143,9 +143,9 @@ function PodiumCard({ perfil, posicao, isMe, grande = false }: {
   return (
     <div className="flex flex-col items-center gap-2">
       <span className="text-2xl">{MEDALHAS[posicao]}</span>
-      <div className={`relative rounded-full overflow-hidden border-4 ${
+      <div className={`rounded-full border-4 ${
         isMe ? 'border-[#009C3B]' : posicao === 0 ? 'border-[#FFDF00]' : 'border-gray-300'
-      } ${grande ? 'w-20 h-20' : 'w-14 h-14'}`}>
+      }`}>
         <Avatar perfil={perfil} size={grande ? 80 : 56} />
       </div>
       <p className={`font-bold text-center leading-tight ${grande ? 'text-sm' : 'text-xs'} text-[#002776] max-w-[80px] truncate`}>
@@ -159,17 +159,19 @@ function PodiumCard({ perfil, posicao, isMe, grande = false }: {
 }
 
 function Avatar({ perfil, size }: { perfil: Perfil; size: number }) {
-  if (perfil.foto_url) {
-    return (
-      <Image src={perfil.foto_url} alt={perfil.nome} width={size} height={size}
-        className="object-cover w-full h-full" />
-    )
-  }
   const iniciais = perfil.nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
   return (
-    <div className="w-full h-full bg-[#009C3B] flex items-center justify-center text-white font-black"
-      style={{ fontSize: size * 0.35 }}>
-      {iniciais}
+    <div className="rounded-full overflow-hidden shrink-0 bg-[#009C3B]"
+      style={{ width: size, height: size, minWidth: size }}>
+      {perfil.foto_url ? (
+        <Image src={perfil.foto_url} alt={perfil.nome} width={size} height={size}
+          className="object-cover w-full h-full" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-white font-black"
+          style={{ fontSize: size * 0.35 }}>
+          {iniciais}
+        </div>
+      )}
     </div>
   )
 }
