@@ -21,17 +21,17 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
 
   if (id === user.id) redirect('/perfil')
 
-  const [{ data: perfilData }, { data: palpitesData }, { data: rankingData }] = await Promise.all([
+  const [{ data: perfilData, error: perfilError }, { data: palpitesData, error: palpitesError }] = await Promise.all([
     supabase.from('perfis').select('*').eq('id', id).single(),
     supabase
       .from('palpites')
-      .select('*, jogo:jogos(id, time_a, time_b, data_hora, placar_a, placar_b, status, grupo, fase)')
+      .select('id, jogo_id, gols_a, gols_b, pontos, travado, criado_em, jogo:jogos(id, time_a, time_b, data_hora, placar_a, placar_b, status, grupo, fase)')
       .eq('user_id', id)
       .order('criado_em', { ascending: false }),
-    supabase.from('perfis').select('id, pontos').order('pontos', { ascending: false }),
   ])
 
-  if (!perfilData) notFound()
+  if (perfilError || !perfilData) notFound()
+  if (palpitesError) throw new Error(palpitesError.message)
 
   const perfil   = perfilData as Perfil
   const palpites = (palpitesData ?? []) as PalpiteComJogo[]
@@ -41,7 +41,14 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
   const parciais   = encerrados.filter(p => p.pontos === 1).length
   const taxaAcerto = encerrados.length > 0 ? Math.round((acertos / encerrados.length) * 100) : null
 
-  const posicao = (rankingData ?? []).findIndex(p => p.id === id) + 1
+  // Conta quantos usuários têm mais pontos → posição = count + 1
+  const { count: acima, error: rankError } = await supabase
+    .from('perfis')
+    .select('*', { count: 'exact', head: true })
+    .gt('pontos', perfil.pontos)
+
+  if (rankError) throw new Error(rankError.message)
+  const posicao = (acima ?? 0) + 1
 
   const tema        = perfil.selecao_favorita ? SELECOES[perfil.selecao_favorita] : null
   const corFundo    = tema?.cor1 ?? '#002776'

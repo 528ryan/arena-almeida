@@ -98,6 +98,7 @@ function Secao({ titulo, palpites }: { titulo: string; palpites: PalpiteComJogo[
     <div className="flex flex-col gap-2">
       <button
         onClick={() => setAberto(v => !v)}
+        aria-expanded={aberto}
         className="flex items-center justify-between w-full group"
       >
         <div className="flex flex-col items-start gap-1">

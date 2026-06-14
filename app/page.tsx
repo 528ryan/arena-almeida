@@ -10,11 +10,10 @@ import type { TopScorer, JogoHoje } from '@/app/components/JogosDia'
 export default async function Home() {
   const supabase = await createClient()
 
-  // Range for today in Brasília (UTC-3)
+  // Range for today in Brasília using proper IANA timezone
   const nowUTC = new Date()
-  const brasilia = new Date(nowUTC.getTime() - 3 * 60 * 60 * 1000)
-  const todayStr = brasilia.toISOString().slice(0, 10)
-  const todayStartUTC = new Date(`${todayStr}T03:00:00.000Z`)
+  const todayStr = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(nowUTC)
+  const todayStartUTC = new Date(`${todayStr}T00:00:00-03:00`)
   const tomorrowStartUTC = new Date(todayStartUTC.getTime() + 24 * 60 * 60 * 1000)
 
   const [{ data: jogosData }, { data: { user } }, { data: jogosDiaData }] = await Promise.all([
