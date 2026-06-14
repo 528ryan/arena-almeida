@@ -14,6 +14,7 @@ export default function GoogleButton() {
       provider: 'google',
       options: {
         redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+        queryParams: { prompt: 'select_account' },
       },
     })
   }
