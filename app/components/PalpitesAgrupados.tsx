@@ -92,7 +92,7 @@ function MiniStats({ palpites }: { palpites: PalpiteComJogo[] }) {
 }
 
 function Secao({ titulo, palpites }: { titulo: string; palpites: PalpiteComJogo[] }) {
-  const [aberto, setAberto] = useState(true)
+  const [aberto, setAberto] = useState(false)
 
   return (
     <div className="flex flex-col gap-2">

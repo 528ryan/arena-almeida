@@ -4,14 +4,69 @@ import { createClient } from '@/lib/supabase/server'
 import LogoutButton from '@/app/components/LogoutButton'
 import ContadorRegressivo from '@/app/components/ContadorRegressivo'
 import GruposFiltro from '@/app/components/GruposFiltro'
+import JogosDia from '@/app/components/JogosDia'
+import type { TopScorer, JogoHoje } from '@/app/components/JogosDia'
 
 export default async function Home() {
   const supabase = await createClient()
 
-  const [{ data: jogosData }, { data: { user } }] = await Promise.all([
+  // Range for today in Brasília (UTC-3)
+  const nowUTC = new Date()
+  const brasilia = new Date(nowUTC.getTime() - 3 * 60 * 60 * 1000)
+  const todayStr = brasilia.toISOString().slice(0, 10)
+  const todayStartUTC = new Date(`${todayStr}T03:00:00.000Z`)
+  const tomorrowStartUTC = new Date(todayStartUTC.getTime() + 24 * 60 * 60 * 1000)
+
+  const [{ data: jogosData }, { data: { user } }, { data: jogosDiaData }] = await Promise.all([
     supabase.from('jogos').select('id, grupo, status').not('grupo', 'is', null),
     supabase.auth.getUser(),
+    supabase
+      .from('jogos')
+      .select('*')
+      .gte('data_hora', todayStartUTC.toISOString())
+      .lt('data_hora', tomorrowStartUTC.toISOString())
+      .order('data_hora', { ascending: true }),
   ])
+
+  // Top scorers for finished games today
+  const finishedIds = (jogosDiaData ?? [])
+    .filter(j => j.status === 'encerrado')
+    .map(j => j.id)
+
+  const topScorersMap = new Map<number, TopScorer[]>()
+
+  if (finishedIds.length > 0) {
+    const { data: palpitesHoje } = await supabase
+      .from('palpites')
+      .select('jogo_id, pontos, perfil:perfis(nome, foto_url)')
+      .in('jogo_id', finishedIds)
+      .gt('pontos', 0)
+
+    const byJogo = new Map<number, { jogo_id: number; pontos: number; perfil: unknown }[]>()
+    for (const p of palpitesHoje ?? []) {
+      const arr = byJogo.get(p.jogo_id) ?? []
+      arr.push(p)
+      byJogo.set(p.jogo_id, arr)
+    }
+    for (const [jogoId, ps] of byJogo) {
+      const maxPts = Math.max(...ps.map(p => p.pontos))
+      topScorersMap.set(
+        jogoId,
+        ps
+          .filter(p => p.pontos === maxPts)
+          .map(p => ({
+            nome: (p.perfil as { nome: string; foto_url: string | null }).nome,
+            foto_url: (p.perfil as { nome: string; foto_url: string | null }).foto_url,
+            pontos: p.pontos,
+          }))
+      )
+    }
+  }
+
+  const jogosDia: JogoHoje[] = (jogosDiaData ?? []).map(j => ({
+    ...j,
+    topScorers: topScorersMap.get(j.id) ?? [],
+  }))
 
   const jogoIds = (jogosData ?? []).map(j => j.id as string)
 
@@ -70,6 +125,8 @@ export default async function Home() {
       </header>
 
       <main className="flex-1 max-w-md mx-auto w-full px-4 py-6 flex flex-col gap-5">
+
+        <JogosDia jogos={jogosDia} />
 
         <ContadorRegressivo />
 
