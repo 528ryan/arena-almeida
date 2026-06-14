@@ -111,8 +111,8 @@ function CardJogo({ jogo, status }: { jogo: JogoHoje; status: StatusJogo }) {
                   {jogo.topScorers[0].pontos === 3 ? '🎯' : '⚡'} Pontuou
                 </p>
                 <div className="flex flex-wrap gap-x-1.5 gap-y-1">
-                  {jogo.topScorers.map((s, i) => (
-                    <AvatarScorer key={i} nome={s.nome} foto_url={s.foto_url} />
+                  {jogo.topScorers.map((s) => (
+                    <AvatarScorer key={`${jogo.id}-${s.nome}`} nome={s.nome} foto_url={s.foto_url} />
                   ))}
                 </div>
               </>
