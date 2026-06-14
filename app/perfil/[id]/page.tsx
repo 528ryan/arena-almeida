@@ -1,5 +1,5 @@
 import { redirect, notFound } from 'next/navigation'
-import { ArrowLeft, Lock, DollarSign, Crown } from 'lucide-react'
+import { ArrowLeft, DollarSign, Crown } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
@@ -7,70 +7,10 @@ import { SELECOES } from '@/lib/selecoes'
 import FlagImg from '@/app/components/FlagImg'
 import MoneyRain from '@/app/components/MoneyRain'
 import EstatisticasPerfil from '@/app/components/EstatisticasPerfil'
+import PalpitesAgrupados from '@/app/components/PalpitesAgrupados'
 import type { Perfil, Jogo, Palpite } from '@/types'
 
 type PalpiteComJogo = Palpite & { jogo: Jogo | null }
-
-function TagPontos({ pontos, status }: { pontos: number; status: string }) {
-  if (status !== 'encerrado') {
-    return <span className="text-[10px] text-gray-400 font-semibold">Pendente</span>
-  }
-  const cls =
-    pontos === 3 ? 'bg-green-100 text-green-700' :
-    pontos === 1 ? 'bg-yellow-100 text-yellow-700' :
-                   'bg-gray-100 text-gray-500'
-  return (
-    <span className={`text-xs font-black px-2.5 py-1 rounded-full ${cls}`}>
-      {pontos} pts
-    </span>
-  )
-}
-
-function PalpiteCard({ palpite }: { palpite: PalpiteComJogo }) {
-  const jogo = palpite.jogo
-  if (!jogo) return null
-  const enc   = jogo.status === 'encerrado'
-  const label = jogo.grupo ? `Grupo ${jogo.grupo}` : (jogo.fase ?? 'Eliminatória')
-  const dataFormatada = new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit', month: '2-digit', year: '2-digit',
-    hour: '2-digit', minute: '2-digit',
-  }).format(new Date(jogo.data_hora))
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="bg-[#002776]/5 px-4 py-2.5 flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-bold text-[#002776] text-sm truncate">{jogo.time_a} × {jogo.time_b}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">
-            {dataFormatada} · <span className="font-semibold">{label}</span>
-          </p>
-        </div>
-        <TagPontos pontos={palpite.pontos} status={jogo.status} />
-      </div>
-      <div className="px-4 py-3 flex items-center justify-between">
-        <div>
-          <p className="text-[10px] text-gray-400 mb-0.5">Palpite</p>
-          <div className="flex items-center gap-1.5">
-            <p className="font-black text-[#002776] text-xl tabular-nums">
-              {palpite.gols_a} × {palpite.gols_b}
-            </p>
-            {palpite.travado && <Lock className="w-3.5 h-3.5 text-[#009C3B]" />}
-          </div>
-        </div>
-        {enc && jogo.placar_a !== null ? (
-          <div className="text-right">
-            <p className="text-[10px] text-gray-400 mb-0.5">Resultado</p>
-            <p className="font-black text-gray-700 text-xl tabular-nums">
-              {jogo.placar_a} × {jogo.placar_b}
-            </p>
-          </div>
-        ) : (
-          <p className="text-xs text-gray-300 font-semibold">Aguardando resultado</p>
-        )}
-      </div>
-    </div>
-  )
-}
 
 export default async function PerfilPublicoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -216,15 +156,7 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
         {/* Palpites */}
         <section>
           <h2 className="text-[#002776] font-black text-base mb-3">Palpites</h2>
-          {palpites.length === 0 ? (
-            <p className="text-center text-gray-400 py-10 text-sm">
-              Nenhum palpite ainda.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {palpites.map(p => <PalpiteCard key={p.id} palpite={p} />)}
-            </div>
-          )}
+          <PalpitesAgrupados palpites={palpites} />
         </section>
       </main>
     </div>
