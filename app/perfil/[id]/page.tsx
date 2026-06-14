@@ -34,7 +34,7 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
   if (palpitesError) throw new Error(palpitesError.message)
 
   const perfil   = perfilData as Perfil
-  const palpites = (palpitesData ?? []) as PalpiteComJogo[]
+  const palpites = (palpitesData ?? []) as unknown as PalpiteComJogo[]
 
   const encerrados = palpites.filter(p => p.jogo?.status === 'encerrado')
   const acertos    = encerrados.filter(p => p.pontos === 3).length
