@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { Lock, ShieldCheck, DollarSign, Crown } from 'lucide-react'
+import { Lock, ShieldCheck, DollarSign, Crown, LayoutGrid } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { SELECOES } from '@/lib/selecoes'
@@ -11,6 +11,7 @@ import SelecionarSelecao from './SelecionarSelecao'
 import FlagImg from '@/app/components/FlagImg'
 import MoneyRain from '@/app/components/MoneyRain'
 import EstatisticasPerfil from '@/app/components/EstatisticasPerfil'
+import GameCard from '@/app/components/GameCard'
 import type { Perfil, Jogo, Palpite } from '@/types'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────
@@ -94,7 +95,7 @@ export default async function PerfilPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: perfilData }, { data: palpitesData }, { data: rankingData }] = await Promise.all([
+  const [{ data: perfilData }, { data: palpitesData }, { data: rankingData }, { data: jogosPendentesData }] = await Promise.all([
     supabase.from('perfis').select('*').eq('id', user.id).single(),
     supabase
       .from('palpites')
@@ -102,12 +103,43 @@ export default async function PerfilPage() {
       .eq('user_id', user.id)
       .order('criado_em', { ascending: false }),
     supabase.from('perfis').select('id, pontos').order('pontos', { ascending: false }),
+    supabase
+      .from('jogos')
+      .select('*')
+      .eq('status', 'pendente')
+      .not('grupo', 'is', null)
+      .order('data_hora', { ascending: true }),
   ])
 
   const perfil   = perfilData as Perfil | null
   const palpites = (palpitesData ?? []) as PalpiteComJogo[]
 
   if (!perfil) redirect('/login')
+
+  const jogosPendentes = (jogosPendentesData ?? []) as Jogo[]
+
+  // Fetch user's palpites for pending games (if any)
+  let palpitesPendentes: Record<number, Palpite> = {}
+  if (jogosPendentes.length > 0) {
+    const { data: pp } = await supabase
+      .from('palpites')
+      .select('*')
+      .eq('user_id', user.id)
+      .in('jogo_id', jogosPendentes.map(j => j.id))
+    palpitesPendentes = Object.fromEntries(
+      (pp ?? []).map((p: Palpite) => [p.jogo_id, p])
+    )
+  }
+
+  // Group pending games by grupo
+  const jogosPorGrupo = new Map<string, Jogo[]>()
+  for (const jogo of jogosPendentes) {
+    const g = jogo.grupo!
+    const arr = jogosPorGrupo.get(g) ?? []
+    arr.push(jogo)
+    jogosPorGrupo.set(g, arr)
+  }
+  const gruposComJogos = Array.from(jogosPorGrupo.entries()).sort(([a], [b]) => a.localeCompare(b))
 
   const encerrados = palpites.filter(p => p.jogo?.status === 'encerrado')
   const acertos    = encerrados.filter(p => p.pontos === 3).length
@@ -207,6 +239,47 @@ export default async function PerfilPage() {
 
       <main className="flex-1 max-w-md mx-auto w-full px-4 py-6 flex flex-col gap-6">
 
+        {/* Dar Palpites — jogos pendentes */}
+        {gruposComJogos.length > 0 ? (
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <LayoutGrid className="w-5 h-5 text-[#002776]" strokeWidth={2.5} />
+              <h2 className="text-[#002776] font-black text-base">Meus Palpites</h2>
+            </div>
+            <div className="flex flex-col gap-5">
+              {gruposComJogos.map(([grupo, jogosGrupo]) => (
+                <div key={grupo}>
+                  <p className="text-[11px] font-black text-[#002776]/50 uppercase tracking-widest mb-2 ml-1">
+                    Grupo {grupo}
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    {jogosGrupo.map(jogo => (
+                      <GameCard
+                        key={jogo.id}
+                        jogo={jogo}
+                        palpiteInicial={palpitesPendentes[jogo.id] ?? null}
+                        userId={user.id}
+                        nomeUsuario={perfil.nome}
+                        avatarUrl={perfil.foto_url}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-5 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#009C3B]/10 flex items-center justify-center shrink-0">
+              <LayoutGrid className="w-5 h-5 text-[#009C3B]" />
+            </div>
+            <div>
+              <p className="font-bold text-gray-700 text-sm">Fase de grupos concluída</p>
+              <p className="text-xs text-gray-400 mt-0.5">Nenhum jogo pendente na fase de grupos.</p>
+            </div>
+          </section>
+        )}
+
         {/* Estatísticas rápidas */}
         <section className="grid grid-cols-4 gap-2">
           {[
@@ -225,23 +298,28 @@ export default async function PerfilPage() {
         {/* Estatísticas */}
         <EstatisticasPerfil palpites={palpites} selecaoFavorita={perfil.selecao_favorita} />
 
-        {/* Histórico */}
-        <section>
-          <h2 className="text-[#002776] font-black text-base mb-3">
-            Histórico de Palpites
-          </h2>
-          {palpites.length === 0 ? (
-            <p className="text-center text-gray-400 py-10 text-sm">
-              Você ainda não fez nenhum palpite.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {palpites.map(p => (
-                <PalpiteCard key={p.id} palpite={p} />
-              ))}
-            </div>
-          )}
-        </section>
+        {/* Histórico — apenas jogos encerrados */}
+        {(() => {
+          const encerradosComPalpite = palpites.filter(p => p.jogo?.status === 'encerrado')
+          return (
+            <section>
+              <h2 className="text-[#002776] font-black text-base mb-3">
+                Resultados
+              </h2>
+              {encerradosComPalpite.length === 0 ? (
+                <p className="text-center text-gray-400 py-10 text-sm">
+                  Nenhum jogo encerrado ainda.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {encerradosComPalpite.map(p => (
+                    <PalpiteCard key={p.id} palpite={p} />
+                  ))}
+                </div>
+              )}
+            </section>
+          )
+        })()}
 
         {/* Notificações */}
         <section className="pb-2">
