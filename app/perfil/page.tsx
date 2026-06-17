@@ -249,9 +249,18 @@ export default async function PerfilPage() {
             <div className="flex flex-col gap-5">
               {gruposComJogos.map(([grupo, jogosGrupo]) => (
                 <div key={grupo}>
-                  <p className="text-[11px] font-black text-[#002776]/50 uppercase tracking-widest mb-2 ml-1">
-                    Grupo {grupo}
-                  </p>
+                  {/* Cabeçalho do grupo */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-full bg-[#002776] text-white font-black text-sm flex items-center justify-center shrink-0">
+                      {grupo}
+                    </div>
+                    <span className="font-black text-[#002776] text-sm">Grupo {grupo}</span>
+                    <div className="flex-1 h-px bg-gray-200" />
+                    <span className="text-[10px] text-gray-400 shrink-0">
+                      {jogosGrupo.length} {jogosGrupo.length === 1 ? 'jogo' : 'jogos'}
+                    </span>
+                  </div>
+
                   <div className="flex flex-col gap-3">
                     {jogosGrupo.map(jogo => (
                       <GameCard

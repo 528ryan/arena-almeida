@@ -17,7 +17,7 @@ export default async function Home() {
   const tomorrowStartUTC = new Date(todayStartUTC.getTime() + 24 * 60 * 60 * 1000)
 
   const [{ data: jogosData }, { data: { user } }, { data: jogosDiaData }] = await Promise.all([
-    supabase.from('jogos').select('id, grupo, status').not('grupo', 'is', null),
+    supabase.from('jogos').select('id, grupo, status, data_hora').not('grupo', 'is', null),
     supabase.auth.getUser(),
     supabase
       .from('jogos')
@@ -90,15 +90,20 @@ export default async function Home() {
     palpitesSet = new Set((todosPalpitesData ?? []).map(p => p.jogo_id as string))
   }
 
-  // Resumo por grupo
-  const grupos = new Map<string, { total: number; cravados: number; semPalpite: number }>()
+  // Resumo por grupo + detectar ao vivo (started ≤ 110 min ago, not encerrado)
+  const LIVE_MIN = 110
+  const grupos = new Map<string, { total: number; cravados: number; semPalpite: number; aoVivo: boolean }>()
   ;(jogosData ?? []).forEach(j => {
     const g = j.grupo as string
-    if (!grupos.has(g)) grupos.set(g, { total: 0, cravados: 0, semPalpite: 0 })
+    if (!grupos.has(g)) grupos.set(g, { total: 0, cravados: 0, semPalpite: 0, aoVivo: false })
     const s = grupos.get(g)!
     s.total++
     if (cravadosSet.has(j.id as string)) s.cravados++
     if (!palpitesSet.has(j.id as string) && j.status !== 'encerrado') s.semPalpite++
+    if (j.status !== 'encerrado' && j.data_hora) {
+      const diff = (nowUTC.getTime() - new Date(j.data_hora as string).getTime()) / 60_000
+      if (diff >= 0 && diff <= LIVE_MIN) s.aoVivo = true
+    }
   })
 
   const gruposOrdenados = Array.from(grupos.entries())

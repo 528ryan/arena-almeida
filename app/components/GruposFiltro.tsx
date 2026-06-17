@@ -8,6 +8,7 @@ type GrupoInfo = {
   total: number
   cravados: number
   semPalpite: number
+  aoVivo: boolean
 }
 
 export default function GruposFiltro({ grupos }: { grupos: GrupoInfo[] }) {
@@ -54,17 +55,29 @@ export default function GruposFiltro({ grupos }: { grupos: GrupoInfo[] }) {
         <p className="text-center text-gray-400 py-6 text-sm">Todos os palpites feitos!</p>
       ) : (
         <div className="grid grid-cols-3 gap-2.5">
-          {lista.map(({ letra, total, cravados, semPalpite }) => {
+          {lista.map(({ letra, total, cravados, semPalpite, aoVivo }) => {
             const progresso = total > 0 ? Math.round((cravados / total) * 100) : 0
             return (
               <Link key={letra} href={`/grupo/${letra}`}>
-                <div className="rounded-2xl bg-white border border-gray-200 p-3 shadow-sm active:scale-95 transition-transform flex flex-col items-center gap-2 relative">
+                <div className={`rounded-2xl bg-white border p-3 shadow-sm active:scale-95 transition-transform flex flex-col items-center gap-2 relative overflow-hidden ${
+                  aoVivo ? 'border-red-300' : 'border-gray-200'
+                }`}>
+                  {/* Banner ao vivo */}
+                  {aoVivo && (
+                    <div className="absolute top-0 left-0 right-0 bg-red-500 py-[3px] flex items-center justify-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                      <span className="text-[9px] text-white font-black tracking-wide">AO VIVO</span>
+                    </div>
+                  )}
+
+                  {/* Missing palpite badge */}
                   {semPalpite > 0 && (
-                    <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">
+                    <span className={`absolute right-2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center ${aoVivo ? 'top-7' : 'top-2'}`}>
                       {semPalpite}
                     </span>
                   )}
-                  <div className="w-10 h-10 rounded-full bg-[#002776] text-white font-black text-base flex items-center justify-center">
+
+                  <div className={`w-10 h-10 rounded-full text-white font-black text-base flex items-center justify-center ${aoVivo ? 'mt-4 bg-red-500' : 'bg-[#002776]'}`}>
                     {letra}
                   </div>
                   <p className="font-black text-[#002776] text-sm leading-none">Grupo {letra}</p>
