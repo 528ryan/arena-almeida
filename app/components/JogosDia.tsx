@@ -45,6 +45,42 @@ function AvatarScorer({ nome, foto_url }: { nome: string; foto_url: string | nul
   )
 }
 
+/** Card em destaque para próximo jogo — full width, tema verde */
+function CardEmBreve({ jogo, minutosRestantes }: { jogo: JogoHoje; minutosRestantes: number }) {
+  const label = jogo.grupo ? `Grupo ${jogo.grupo}` : (jogo.fase ?? 'Eliminatória')
+  const hora  = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(jogo.data_hora))
+
+  return (
+    <div className="rounded-2xl border-2 border-[#009C3B]/30 bg-[#009C3B]/5 overflow-hidden shadow-sm">
+      <div className="bg-[#009C3B] px-4 py-2 flex items-center justify-between">
+        <span className="text-white text-xs font-black">EM BREVE · {hora}</span>
+        <span className="text-green-200 text-xs font-semibold uppercase tracking-wide">{label}</span>
+      </div>
+
+      <div className="px-4 py-4 flex items-center gap-3">
+        <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
+          <FlagImg nome={jogo.time_a} size={28} />
+          <span className="font-black text-gray-800 text-sm text-center leading-tight">{jogo.time_a}</span>
+        </div>
+
+        <div className="shrink-0 flex flex-col items-center gap-1">
+          <span className="font-black text-2xl text-[#009C3B]">VS</span>
+          {minutosRestantes <= 90 && (
+            <span className="text-[10px] text-[#009C3B] font-bold bg-[#009C3B]/10 px-2 py-0.5 rounded-full">
+              em {minutosRestantes} min
+            </span>
+          )}
+        </div>
+
+        <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
+          <FlagImg nome={jogo.time_b} size={28} />
+          <span className="font-black text-gray-800 text-sm text-center leading-tight">{jogo.time_b}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /** Card em destaque para jogo ao vivo — full width */
 function CardAoVivo({ jogo }: { jogo: JogoHoje }) {
   const label = jogo.grupo ? `Grupo ${jogo.grupo}` : (jogo.fase ?? 'Eliminatória')
@@ -186,22 +222,41 @@ export default function JogosDia({ jogos }: { jogos: JogoHoje[] }) {
 
   const comStatus = jogos.map(j => ({ jogo: j, status: calcStatus(j, now, proximaDataHora) }))
 
-  const aoVivos   = comStatus.filter(({ status }) => status === 'ao_vivo')
-  const restantes = comStatus.filter(({ status }) => status !== 'ao_vivo')
-  // em_breve first in the scroll
-  restantes.sort((a, b) => {
-    const order: Record<StatusJogo, number> = { em_breve: 0, futuro: 1, encerrado: 2, ao_vivo: 3 }
-    return order[a.status] - order[b.status]
-  })
+  const aoVivos  = comStatus.filter(({ status }) => status === 'ao_vivo')
+  const emBreves = comStatus.filter(({ status }) => status === 'em_breve')
+
+  // ao_vivo tem prioridade; sem ao_vivo → promove o em_breve para destaque
+  const temAoVivo       = aoVivos.length > 0
+  const emBreveDestaque = !temAoVivo && emBreves.length > 0 ? emBreves[0] : null
+  const minutosRestantes = emBreveDestaque
+    ? Math.max(0, Math.round((new Date(emBreveDestaque.jogo.data_hora).getTime() - now.getTime()) / 60_000))
+    : 0
+
+  // Remove os jogos em destaque do scroll
+  const idsDestaque = new Set([
+    ...aoVivos.map(({ jogo }) => jogo.id),
+    ...(emBreveDestaque ? [emBreveDestaque.jogo.id] : []),
+  ])
+  const restantes = comStatus
+    .filter(({ jogo }) => !idsDestaque.has(jogo.id))
+    .sort((a, b) => {
+      const order: Record<StatusJogo, number> = { em_breve: 0, futuro: 1, encerrado: 2, ao_vivo: 3 }
+      return order[a.status] - order[b.status]
+    })
 
   return (
     <section className="flex flex-col gap-2">
       <h2 className="text-[#002776] font-black text-sm">Jogos de Hoje</h2>
 
-      {/* Jogos ao vivo em destaque */}
+      {/* Ao vivo em destaque */}
       {aoVivos.map(({ jogo }) => (
         <CardAoVivo key={jogo.id} jogo={jogo} />
       ))}
+
+      {/* Em breve em destaque (só quando não há ao vivo) */}
+      {emBreveDestaque && (
+        <CardEmBreve jogo={emBreveDestaque.jogo} minutosRestantes={minutosRestantes} />
+      )}
 
       {/* Demais jogos no scroll */}
       {restantes.length > 0 && (
