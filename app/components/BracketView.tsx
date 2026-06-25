@@ -153,20 +153,26 @@ function Connectors({ fromRound }: { fromRound: number }) {
   )
 }
 
+// Posição Y do jogo de 3º lugar (abaixo da semi inferior)
+// POSITIONS[3][1] = y da semi de baixo = 736, + NODE_H + gap
+const POS_TERCEIRO = POSITIONS[3][1] + NODE_H + 24
+
 // ─── Componente principal ───────────────────────────────────────────────────
 interface Props {
   jogos: Jogo[]
+  jogoTerceiro?: Jogo
   palpitesPorJogo: Record<number, Palpite>
   userId: string
   nomeUsuario?: string | null
   avatarUrl?: string | null
 }
 
-export default function BracketView({ jogos, palpitesPorJogo, userId, nomeUsuario, avatarUrl }: Props) {
+export default function BracketView({ jogos, jogoTerceiro, palpitesPorJogo, userId, nomeUsuario, avatarUrl }: Props) {
   const [jogoSelecionado, setJogoSelecionado] = useState<Jogo | null>(null)
 
   const rounds = ROUNDS.map(({ fase }) => jogos.filter(j => j.fase === fase))
   const totalW = ROUNDS.length * NODE_W + (ROUNDS.length - 1) * CONN_W
+  const totalH = jogoTerceiro ? Math.max(TOTAL_H, POS_TERCEIRO + NODE_H + 4) : TOTAL_H
 
   return (
     <>
@@ -186,7 +192,7 @@ export default function BracketView({ jogos, palpitesPorJogo, userId, nomeUsuari
         </div>
 
         {/* Bracket */}
-        <div className="relative" style={{ height: TOTAL_H, minWidth: totalW }}>
+        <div className="relative" style={{ height: totalH, minWidth: totalW }}>
           {ROUNDS.map(({ fase }, ri) => {
             const round    = rounds[ri]
             const count    = POSITIONS[ri].length
@@ -217,6 +223,25 @@ export default function BracketView({ jogos, palpitesPorJogo, userId, nomeUsuari
               </div>
             )
           })}
+
+          {/* 3º Lugar — coluna da Final, abaixo da semi inferior */}
+          {jogoTerceiro && (() => {
+            const finalCol = (ROUNDS.length - 1) * (NODE_W + CONN_W)
+            const palpite  = palpitesPorJogo[jogoTerceiro.id]
+            return (
+              <div style={{ position: 'absolute', top: POS_TERCEIRO, left: finalCol }}>
+                <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest text-center mb-1">
+                  🥉 3º Lugar
+                </p>
+                <GameNode
+                  jogo={jogoTerceiro}
+                  hasPalpite={!!palpite}
+                  travado={palpite?.travado ?? false}
+                  onClick={() => setJogoSelecionado(jogoTerceiro)}
+                />
+              </div>
+            )
+          })()}
         </div>
       </div>
 
