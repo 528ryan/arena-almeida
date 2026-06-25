@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { Trophy, Crown } from 'lucide-react'
+import { Trophy, Crown, Target } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import type { Perfil } from '@/types'
 
@@ -290,6 +290,46 @@ function MinhaPosicao({ jogador }: { jogador: JogadorRanking }) {
   )
 }
 
+// ─── Artilharia ──────────────────────────────────────────────────────────────
+type Artilheiro = {
+  perfil: Perfil
+  cravadas: number
+  posicao: number
+}
+
+function LinhaArtilheiro({ artilheiro, isMe }: { artilheiro: Artilheiro; isMe: boolean }) {
+  const href = isMe ? '/perfil' : `/perfil/${artilheiro.perfil.id}`
+  const podium = artilheiro.posicao <= 3
+  const medalha = ['🥇', '🥈', '🥉']
+
+  return (
+    <Link href={href} className="block active:scale-[0.98] transition-transform">
+      <div className={`rounded-2xl px-4 py-3.5 shadow-sm border flex items-center gap-3 ${
+        isMe ? 'bg-white border-[#009C3B] ring-1 ring-[#009C3B]/20' : 'bg-white border-gray-100'
+      }`}>
+        <span className="w-7 text-center shrink-0 text-lg">
+          {podium ? medalha[artilheiro.posicao - 1] : (
+            <span className="text-sm font-black text-gray-300 tabular-nums">{artilheiro.posicao}°</span>
+          )}
+        </span>
+        <Avatar perfil={artilheiro.perfil} size={44} />
+        <p className={`flex-1 font-bold text-sm truncate ${isMe ? 'text-[#009C3B]' : 'text-[#002776]'}`}>
+          {isMe ? 'Você' : artilheiro.perfil.nome.split(' ')[0]}
+        </p>
+        <div className="text-right shrink-0 flex items-center gap-2">
+          <Target className="w-4 h-4 text-[#009C3B]" />
+          <div>
+            <p className="font-black text-[#002776] text-xl tabular-nums leading-none">
+              {artilheiro.cravadas}
+            </p>
+            <p className="text-[10px] text-gray-400 font-semibold">exatos</p>
+          </div>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default async function RankingPage({
   searchParams,
@@ -297,7 +337,7 @@ export default async function RankingPage({
   searchParams: Promise<{ aba?: string }>
 }) {
   const { aba } = await searchParams
-  const abaAtiva = aba === 'apostadores' ? 'apostadores' : 'geral'
+  const abaAtiva = aba === 'artilharia' ? 'artilharia' : 'geral'
 
   const supabase = await createClient()
 
@@ -340,15 +380,33 @@ export default async function RankingPage({
     ...computarStats(perfil.id, jogosOrdenados, palpitesPorUser),
   }))
 
-  const numApostadores = todos.filter(p => p.pago).length
-  const abaEfetiva     = abaAtiva === 'apostadores' && numApostadores === 0 ? 'geral' : abaAtiva
-  const lista = abaEfetiva === 'apostadores'
-    ? todosComStats.filter(j => j.perfil.pago).map((j, i) => ({ ...j, posicao: i + 1 }))
-    : todosComStats
+  const top3  = todosComStats.slice(0, 3)
+  const resto = todosComStats.slice(3)
+  const eu    = user ? todosComStats.find(j => j.perfil.id === user.id) : undefined
 
-  const top3  = lista.slice(0, 3)
-  const resto = lista.slice(3)
-  const eu    = user ? lista.find(j => j.perfil.id === user.id) : undefined
+  // Artilharia: contagem de placares exatos (pontos = 3) em TODOS os jogos encerrados
+  let artilheiros: Artilheiro[] = []
+  if (abaAtiva === 'artilharia') {
+    const { data: exatos } = await supabase
+      .from('palpites')
+      .select('user_id')
+      .eq('pontos', 3)
+
+    const contagem = new Map<string, number>()
+    for (const p of exatos ?? []) {
+      contagem.set(p.user_id, (contagem.get(p.user_id) ?? 0) + 1)
+    }
+
+    const sorted = todos
+      .map(perfil => ({ perfil, cravadas: contagem.get(perfil.id) ?? 0 }))
+      .sort((a, b) => b.cravadas - a.cravadas)
+
+    let posAtual = 1
+    artilheiros = sorted.map((a, i) => {
+      if (i > 0 && sorted[i - 1].cravadas !== a.cravadas) posAtual = i + 1
+      return { ...a, posicao: posAtual }
+    })
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -370,7 +428,7 @@ export default async function RankingPage({
             <Link
               href="/ranking?aba=geral"
               className={`flex-1 py-2.5 text-center text-sm font-bold border-b-2 transition-colors ${
-                abaEfetiva === 'geral'
+                abaAtiva === 'geral'
                   ? 'border-[#FFDF00] text-[#FFDF00]'
                   : 'border-transparent text-white/50'
               }`}
@@ -378,28 +436,42 @@ export default async function RankingPage({
               Geral
               <span className="ml-1.5 text-xs opacity-70">{todos.length}</span>
             </Link>
-            {numApostadores > 0 && (
-              <Link
-                href="/ranking?aba=apostadores"
-                className={`flex-1 py-2.5 text-center text-sm font-bold border-b-2 transition-colors ${
-                  abaEfetiva === 'apostadores'
-                    ? 'border-[#FFDF00] text-[#FFDF00]'
-                    : 'border-transparent text-white/50'
-                }`}
-              >
-                Apostadores
-                <span className="ml-1.5 text-xs opacity-70">{numApostadores}</span>
-              </Link>
-            )}
+            <Link
+              href="/ranking?aba=artilharia"
+              className={`flex-1 py-2.5 text-center text-sm font-bold border-b-2 transition-colors ${
+                abaAtiva === 'artilharia'
+                  ? 'border-[#FFDF00] text-[#FFDF00]'
+                  : 'border-transparent text-white/50'
+              }`}
+            >
+              🎯 Artilharia
+            </Link>
           </div>
         </div>
       </header>
 
       <main className="flex-1 max-w-md mx-auto w-full px-4 py-5 flex flex-col gap-5 pb-24">
-        {lista.length === 0 ? (
-          <p className="text-center text-gray-400 mt-20 text-sm">
-            {abaAtiva === 'apostadores' ? 'Nenhum apostador ainda.' : 'Nenhum participante ainda.'}
-          </p>
+        {abaAtiva === 'artilharia' ? (
+          <>
+            <p className="text-center text-xs text-gray-400 font-semibold -mb-2">
+              Quem mais acertou o placar exato
+            </p>
+            {artilheiros.every(a => a.cravadas === 0) ? (
+              <p className="text-center text-gray-400 mt-20 text-sm">Nenhum placar exato ainda.</p>
+            ) : (
+              <section className="flex flex-col gap-2">
+                {artilheiros.map(a => (
+                  <LinhaArtilheiro
+                    key={a.perfil.id}
+                    artilheiro={a}
+                    isMe={a.perfil.id === user?.id}
+                  />
+                ))}
+              </section>
+            )}
+          </>
+        ) : todosComStats.length === 0 ? (
+          <p className="text-center text-gray-400 mt-20 text-sm">Nenhum participante ainda.</p>
         ) : (
           <>
             {/* Minha posição (fora do pódio) */}
@@ -439,7 +511,7 @@ export default async function RankingPage({
                     key={jogador.perfil.id}
                     jogador={jogador}
                     isMe={jogador.perfil.id === user?.id}
-                    isLast={i === resto.length - 1 && lista.length > 1}
+                    isLast={i === resto.length - 1 && todosComStats.length > 1}
                   />
                 ))}
               </section>
