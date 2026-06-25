@@ -8,16 +8,15 @@ import { calcularClassificacao } from '@/lib/classificacao'
 import type { Jogo } from '@/types'
 
 // ─── Auto-resolução de slots ────────────────────────────────────────────────
-// Suporta os dois formatos que podem estar no banco:
-//   Formato curto : "1A", "2B"  (padrão original do BracketView)
-//   Formato longo : "1º Grupo A", "2º Grupo B"
+// Reconhece qualquer variante razoável de slot de classificado:
+//   "1A"  "1 A"  "1ºA"  "1º A"  "1°A"  "1° A"
+//   "1º Grupo A"  "1° Grupo A"  "1o Grupo A"
 function matchSlot(nome: string, posicao: 1 | 2, grupo: string): boolean {
-  const p = String(posicao)
-  return (
-    nome === `${p}${grupo}` ||               // "1A", "2B"
-    nome === `${p}º Grupo ${grupo}` ||       // "1º Grupo A"
-    nome === `${p}° Grupo ${grupo}`          // "1° Grupo A" (símbolo alternativo)
+  const re = new RegExp(
+    `^${posicao}\\s*[º°o]?\\s*(Grupo\\s*)?${grupo}$`,
+    'i'
   )
+  return re.test(nome.trim())
 }
 
 async function _resolverSlots(adminClient: ReturnType<typeof createAdminClient>) {
