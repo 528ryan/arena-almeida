@@ -53,10 +53,36 @@ export default async function MataMataPage() {
     (palpitesData ?? []).map((p: Palpite) => [p.jogo_id, p])
   )
 
+  // Ordem correta do bracket FIFA (top → bottom)
+  // 16 avos: M74,M77,M73,M75 | M76,M78,M79,M80 | M83,M84,M81,M82 | M86,M88,M85,M87
+  const BRACKET_ORDER = [
+    // 16 avos de Final (posições 0–15 no bracket)
+    81, 84,  // M74, M77 → oitavas Filadélfia
+    79, 82,  // M73, M75 → oitavas Houston
+    80, 83,  // M76, M78 → oitavas East Rutherford
+    85, 86,  // M79, M80 → oitavas Cidade do México
+    90, 89,  // M83, M84 → oitavas Arlington
+    88, 87,  // M81, M82 → oitavas Seattle
+    93, 92,  // M86, M88 → oitavas Atlanta
+    91, 94,  // M85, M87 → oitavas Vancouver
+    // Oitavas de Final (posições 0–7)
+    96, 95, 97, 98, 99, 100, 101, 102,
+    // Quartas de Final
+    103, 104, 105, 106,
+    // Semifinal
+    107, 108,
+    // Final
+    110,
+  ]
+
   // Jogos para o bracket visual (16 avos → Final)
-  const jogosParaBracket = jogos.filter(j =>
-    ['16 avos de Final', 'Oitavas de Final', 'Quartas de Final', 'Semifinal', 'Final'].includes(j.fase ?? '')
-  )
+  const jogosParaBracket = jogos
+    .filter(j => ['16 avos de Final', 'Oitavas de Final', 'Quartas de Final', 'Semifinal', 'Final'].includes(j.fase ?? ''))
+    .sort((a, b) => {
+      const pa = BRACKET_ORDER.indexOf(a.id)
+      const pb = BRACKET_ORDER.indexOf(b.id)
+      return (pa === -1 ? 9999 : pa) - (pb === -1 ? 9999 : pb)
+    })
 
   // Fases com jogos (excluindo as do bracket visual, exibidas separadamente abaixo)
   const fasesAbaixo = FASE_ORDEM.filter(fase =>
