@@ -162,8 +162,40 @@ export default async function MataMataPage() {
           </section>
         )}
 
+        {/* Disputa de 3º Lugar — fora da árvore do bracket */}
+        {(() => {
+          const jogo3 = jogos.find(j => j.fase === 'Disputa de 3º Lugar')
+          if (!jogo3) return null
+          return (
+            <section className="px-4">
+              <div className="flex items-center justify-between rounded-xl border px-3 py-2.5 mb-3 bg-stone-50 border-stone-200 text-stone-700">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🥉</span>
+                  <div>
+                    <p className="font-black text-sm leading-none">Disputa de 3º Lugar</p>
+                    <p className="text-[10px] opacity-70 font-semibold mt-0.5">Disputa pelo bronze</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="font-black text-sm">{palpitesPorJogo[jogo3.id] ? 1 : 0}</span>
+                  <span className="opacity-60 text-sm">/1</span>
+                  <p className="text-[10px] opacity-60 font-semibold">palpites</p>
+                </div>
+              </div>
+              <GameCard
+                jogo={jogo3}
+                palpiteInicial={palpitesPorJogo[jogo3.id] ?? null}
+                userId={userId}
+                nomeUsuario={nomeUsuario}
+                avatarUrl={avatarUrl}
+              />
+            </section>
+          )
+        })()}
+
         {/* Jogos por fase */}
         {fasesAbaixo.map(fase => {
+          if (fase === 'Disputa de 3º Lugar') return null
           const jogosFase = jogos.filter(j => j.fase === fase)
           if (jogosFase.length === 0) return null
           const meta = FASE_META[fase]
