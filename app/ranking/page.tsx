@@ -210,12 +210,14 @@ function PodiumCard({
 }
 
 // ─── Linha ranking (posição 4+) ──────────────────────────────────────────────
-function LinhaRanking({ jogador, isMe }: { jogador: JogadorRanking; isMe: boolean }) {
+function LinhaRanking({ jogador, isMe, isLast }: { jogador: JogadorRanking; isMe: boolean; isLast?: boolean }) {
   const href = isMe ? '/perfil' : `/perfil/${jogador.perfil.id}`
   return (
     <Link href={href} className="block active:scale-[0.98] transition-transform">
-      <div className={`bg-white rounded-2xl px-4 py-3.5 shadow-sm border ${
-        isMe ? 'border-[#009C3B] ring-1 ring-[#009C3B]/20' : 'border-gray-100'
+      <div className={`rounded-2xl px-4 py-3.5 shadow-sm border ${
+        isMe    ? 'bg-white border-[#009C3B] ring-1 ring-[#009C3B]/20' :
+        isLast  ? 'bg-red-50 border-red-200' :
+                  'bg-white border-gray-100'
       }`}>
         <div className="flex items-center gap-3">
           {/* Posição */}
@@ -432,11 +434,12 @@ export default async function RankingPage({
                   <Legenda />
                 </div>
 
-                {resto.map(jogador => (
+                {resto.map((jogador, i) => (
                   <LinhaRanking
                     key={jogador.perfil.id}
                     jogador={jogador}
                     isMe={jogador.perfil.id === user?.id}
+                    isLast={i === resto.length - 1 && lista.length > 1}
                   />
                 ))}
               </section>

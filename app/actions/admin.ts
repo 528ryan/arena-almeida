@@ -4,6 +4,54 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { verificarENotificarRanking } from '@/lib/notifications'
+import { calcularClassificacao } from '@/lib/classificacao'
+import type { Jogo } from '@/types'
+
+// ─── Auto-resolução de slots ────────────────────────────────────────────────
+// Quando um grupo encerra, atualiza jogos do mata-mata que têm "1º Grupo X"
+// ou "2º Grupo X" no nome do time, substituindo pelo nome real da seleção.
+async function _resolverSlots(adminClient: ReturnType<typeof createAdminClient>) {
+  const { data } = await adminClient.from('jogos').select('*')
+  if (!data) return
+
+  const jogos = data as Jogo[]
+  const grupoJogos   = jogos.filter(j => j.grupo)
+  const knockoutJogos = jogos.filter(j => !j.grupo)
+
+  const grupos = [...new Set(grupoJogos.map(j => j.grupo!))]
+
+  for (const grupo of grupos) {
+    const jogosGrupo = grupoJogos.filter(j => j.grupo === grupo)
+    // Só resolve quando TODOS os jogos do grupo estão encerrados
+    if (!jogosGrupo.every(j => j.status === 'encerrado')) continue
+
+    const classificacao = calcularClassificacao(jogosGrupo)
+    const primeiro = classificacao[0]?.nome
+    const segundo  = classificacao[1]?.nome
+
+    const atualizacoes = knockoutJogos.flatMap(jogo => {
+      const updates: Record<string, string> = {}
+      if (jogo.time_a === `1º Grupo ${grupo}` && primeiro) updates.time_a = primeiro
+      if (jogo.time_a === `2º Grupo ${grupo}` && segundo)  updates.time_a = segundo
+      if (jogo.time_b === `1º Grupo ${grupo}` && primeiro) updates.time_b = primeiro
+      if (jogo.time_b === `2º Grupo ${grupo}` && segundo)  updates.time_b = segundo
+      return Object.keys(updates).length > 0 ? [{ id: jogo.id, updates }] : []
+    })
+
+    await Promise.all(
+      atualizacoes.map(({ id, updates }) =>
+        adminClient.from('jogos').update(updates).eq('id', id)
+      )
+    )
+  }
+}
+
+export async function resolverSlots() {
+  await assertAdmin()
+  const adminClient = createAdminClient()
+  await _resolverSlots(adminClient)
+  revalidateAll()
+}
 
 async function assertAdmin() {
   const supabase = await createClient()
@@ -30,8 +78,9 @@ export async function fecharJogo(jogoId: number, placar_a: number, placar_b: num
     .update({ placar_a, placar_b, status: 'encerrado' })
     .eq('id', jogoId)
   if (error) throw error
+  // Tenta auto-resolver slots do mata-mata baseado em grupos completos
+  await _resolverSlots(adminClient)
   revalidateAll()
-  // Notifica se o top 3 mudou (fire-and-forget, não bloqueia a resposta)
   verificarENotificarRanking().catch(() => {})
 }
 

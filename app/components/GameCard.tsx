@@ -19,19 +19,19 @@ type GameCardProps = {
 
 type SaveStatus = 'idle' | 'saving' | 'saved'
 
-/** Retorna o deadline de edição: prazo_edicao se definido, senão data_hora - 6h */
-function getDeadline(jogo: { data_hora: string; prazo_edicao: string | null }): Date {
+/** Retorna o deadline de edição: prazo_edicao se definido, senão 1h antes (mata-mata) ou 6h antes (grupos) */
+function getDeadline(jogo: { data_hora: string; prazo_edicao: string | null; grupo: string | null }): Date {
   if (jogo.prazo_edicao) return new Date(jogo.prazo_edicao)
   const d = new Date(jogo.data_hora)
-  d.setHours(d.getHours() - 6)
+  d.setHours(d.getHours() - (jogo.grupo ? 6 : 1))
   return d
 }
 
-function isPrazoEncerrado(jogo: { data_hora: string; prazo_edicao: string | null }): boolean {
+function isPrazoEncerrado(jogo: { data_hora: string; prazo_edicao: string | null; grupo: string | null }): boolean {
   return new Date() >= getDeadline(jogo)
 }
 
-function formatarPrazo(jogo: { data_hora: string; prazo_edicao: string | null }): string {
+function formatarPrazo(jogo: { data_hora: string; prazo_edicao: string | null; grupo: string | null }): string {
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
   }).format(getDeadline(jogo))

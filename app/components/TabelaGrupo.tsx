@@ -25,7 +25,7 @@ export default function TabelaGrupo({ jogos }: { jogos: Jogo[] }) {
           {tabela.map((time, i) => (
             <tr
               key={time.nome}
-              className={`border-t border-gray-100 ${i < 2 ? 'bg-green-50' : 'bg-white'}`}
+              className={`border-t border-gray-100 ${i < 2 ? 'bg-green-50' : i === tabela.length - 1 ? 'bg-red-50' : 'bg-white'}`}
             >
               <td className="py-2 pl-3 pr-1 text-gray-400 font-semibold">{i + 1}</td>
               <td className="py-2 px-2 font-bold text-[#002776] truncate max-w-[130px]" title={time.nome}>
@@ -43,8 +43,9 @@ export default function TabelaGrupo({ jogos }: { jogos: Jogo[] }) {
           ))}
         </tbody>
       </table>
-      <p className="text-[10px] text-gray-400 px-3 py-1.5">
-        🟢 Classificados para as oitavas
+      <p className="text-[10px] text-gray-400 px-3 py-1.5 flex gap-3">
+        <span>🟢 Classificados para os 16 avos</span>
+        <span>🔴 Eliminado</span>
       </p>
     </div>
   )
