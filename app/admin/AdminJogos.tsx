@@ -7,14 +7,14 @@ import { calcularClassificacao } from '@/lib/classificacao'
 import type { Jogo, ClassificacaoTime } from '@/types'
 
 // ─── Helpers de slot ───────────────────────────────────────────────────────
-// "1º Grupo A", "2º Grupo L" → auto-resolvidos quando o grupo encerra
+// "1A", "2B", "1º Grupo A", "2º Grupo L" → auto-resolvidos quando o grupo encerra
 function isSlotAuto(nome: string) {
-  return /^[12]º Grupo [A-L]$/i.test(nome)
+  return /^[12][A-L]$/.test(nome) || /^[12][º°] Grupo [A-L]$/i.test(nome)
 }
 
 // "3º Melhor", "3º (A/B/C)", "3º TBD" → seleção manual pelo admin
 function isSlotTerceiro(nome: string) {
-  return /^3º/.test(nome)
+  return /^3[º°]/.test(nome)
 }
 
 function isSlot(nome: string) {

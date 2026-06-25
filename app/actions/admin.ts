@@ -8,21 +8,30 @@ import { calcularClassificacao } from '@/lib/classificacao'
 import type { Jogo } from '@/types'
 
 // ─── Auto-resolução de slots ────────────────────────────────────────────────
-// Quando um grupo encerra, atualiza jogos do mata-mata que têm "1º Grupo X"
-// ou "2º Grupo X" no nome do time, substituindo pelo nome real da seleção.
+// Suporta os dois formatos que podem estar no banco:
+//   Formato curto : "1A", "2B"  (padrão original do BracketView)
+//   Formato longo : "1º Grupo A", "2º Grupo B"
+function matchSlot(nome: string, posicao: 1 | 2, grupo: string): boolean {
+  const p = String(posicao)
+  return (
+    nome === `${p}${grupo}` ||               // "1A", "2B"
+    nome === `${p}º Grupo ${grupo}` ||       // "1º Grupo A"
+    nome === `${p}° Grupo ${grupo}`          // "1° Grupo A" (símbolo alternativo)
+  )
+}
+
 async function _resolverSlots(adminClient: ReturnType<typeof createAdminClient>) {
   const { data } = await adminClient.from('jogos').select('*')
   if (!data) return
 
   const jogos = data as Jogo[]
-  const grupoJogos   = jogos.filter(j => j.grupo)
+  const grupoJogos    = jogos.filter(j => j.grupo)
   const knockoutJogos = jogos.filter(j => !j.grupo)
 
   const grupos = [...new Set(grupoJogos.map(j => j.grupo!))]
 
   for (const grupo of grupos) {
     const jogosGrupo = grupoJogos.filter(j => j.grupo === grupo)
-    // Só resolve quando TODOS os jogos do grupo estão encerrados
     if (!jogosGrupo.every(j => j.status === 'encerrado')) continue
 
     const classificacao = calcularClassificacao(jogosGrupo)
@@ -31,10 +40,10 @@ async function _resolverSlots(adminClient: ReturnType<typeof createAdminClient>)
 
     const atualizacoes = knockoutJogos.flatMap(jogo => {
       const updates: Record<string, string> = {}
-      if (jogo.time_a === `1º Grupo ${grupo}` && primeiro) updates.time_a = primeiro
-      if (jogo.time_a === `2º Grupo ${grupo}` && segundo)  updates.time_a = segundo
-      if (jogo.time_b === `1º Grupo ${grupo}` && primeiro) updates.time_b = primeiro
-      if (jogo.time_b === `2º Grupo ${grupo}` && segundo)  updates.time_b = segundo
+      if (matchSlot(jogo.time_a, 1, grupo) && primeiro) updates.time_a = primeiro
+      if (matchSlot(jogo.time_a, 2, grupo) && segundo)  updates.time_a = segundo
+      if (matchSlot(jogo.time_b, 1, grupo) && primeiro) updates.time_b = primeiro
+      if (matchSlot(jogo.time_b, 2, grupo) && segundo)  updates.time_b = segundo
       return Object.keys(updates).length > 0 ? [{ id: jogo.id, updates }] : []
     })
 
