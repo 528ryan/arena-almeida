@@ -132,17 +132,7 @@ export default async function MataMataPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white font-black text-sm">Seus palpites</p>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="flex-1 bg-white/10 rounded-full h-2">
-                  <div
-                    className="bg-[#FFDF00] rounded-full h-2 transition-all"
-                    style={{ width: totalMataJogos > 0 ? `${Math.round((totalPalpites / totalMataJogos) * 100)}%` : '0%' }}
-                  />
-                </div>
-                <span className="text-[#FFDF00] text-xs font-black shrink-0">
-                  {totalMataJogos > 0 ? Math.round((totalPalpites / totalMataJogos) * 100) : 0}%
-                </span>
-              </div>
+              <p className="text-white/50 text-xs font-semibold mt-0.5">fase eliminatória</p>
             </div>
             <div className="text-right shrink-0">
               <p className="text-white font-black text-2xl leading-none">{totalPalpites}<span className="text-white/40 text-sm font-semibold">/{totalMataJogos}</span></p>
