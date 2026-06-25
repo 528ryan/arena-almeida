@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
 type GrupoInfo = {
@@ -11,14 +11,41 @@ type GrupoInfo = {
   aoVivo: boolean
 }
 
-export default function GruposFiltro({ grupos }: { grupos: GrupoInfo[] }) {
+type JogoSimples = {
+  id: number
+  grupo: string
+  status: string
+  data_hora: string
+}
+
+const LIVE_MIN = 110
+
+export default function GruposFiltro({ grupos, jogosGrupo = [] }: { grupos: GrupoInfo[]; jogosGrupo?: JogoSimples[] }) {
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(id)
+  }, [])
+
+  // Recalcula aoVivo client-side a cada 30s, corrigindo o valor estático do servidor
+  const aoVivoGrupos = new Set<string>()
+  jogosGrupo.forEach(j => {
+    if (j.status !== 'encerrado') {
+      const diff = (now.getTime() - new Date(j.data_hora).getTime()) / 60_000
+      if (diff >= 0 && diff <= LIVE_MIN) aoVivoGrupos.add(j.grupo)
+    }
+  })
+
+  const gruposMerged = grupos.map(g => ({ ...g, aoVivo: g.aoVivo || aoVivoGrupos.has(g.letra) }))
+
   const [filtro, setFiltro] = useState<'todos' | 'pendentes'>('todos')
 
   const lista = filtro === 'pendentes'
-    ? grupos.filter(g => g.semPalpite > 0)
-    : grupos
+    ? gruposMerged.filter(g => g.semPalpite > 0)
+    : gruposMerged
 
-  const temPendentes = grupos.some(g => g.semPalpite > 0)
+  const temPendentes = gruposMerged.some(g => g.semPalpite > 0)
 
   return (
     <div>

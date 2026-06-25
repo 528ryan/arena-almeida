@@ -144,7 +144,15 @@ export default async function Home() {
           {gruposOrdenados.length === 0 ? (
             <p className="text-center text-gray-400 py-8">Nenhum grupo cadastrado ainda.</p>
           ) : (
-            <GruposFiltro grupos={gruposOrdenados} />
+            <GruposFiltro
+            grupos={gruposOrdenados}
+            jogosGrupo={(jogosData ?? []).map(j => ({
+              id: j.id as number,
+              grupo: j.grupo as string,
+              status: j.status as string,
+              data_hora: j.data_hora as string,
+            }))}
+          />
           )}
         </section>
 
