@@ -8,18 +8,24 @@ import FlagImg from './FlagImg'
 import { compartilharCard } from '@/lib/shareCard'
 import type { Jogo, Palpite } from '@/types'
 
-function getDeadline(jogo: { data_hora: string; prazo_edicao: string | null }): Date {
-  if (jogo.prazo_edicao) return new Date(jogo.prazo_edicao)
+function getDeadline(jogo: { data_hora: string; prazo_edicao: string | null; grupo: string | null }): Date {
   const d = new Date(jogo.data_hora)
-  d.setHours(d.getHours() - 6)
+  if (jogo.grupo) {
+    // Fase de grupos: usa prazo_edicao se definido, senão 6h antes
+    if (jogo.prazo_edicao) return new Date(jogo.prazo_edicao)
+    d.setHours(d.getHours() - 6)
+  } else {
+    // Mata-mata: sempre 1h antes do jogo
+    d.setHours(d.getHours() - 1)
+  }
   return d
 }
 
-function isPrazoEncerrado(jogo: { data_hora: string; prazo_edicao: string | null }): boolean {
+function isPrazoEncerrado(jogo: { data_hora: string; prazo_edicao: string | null; grupo: string | null }): boolean {
   return new Date() >= getDeadline(jogo)
 }
 
-function formatarPrazo(jogo: { data_hora: string; prazo_edicao: string | null }): string {
+function formatarPrazo(jogo: { data_hora: string; prazo_edicao: string | null; grupo: string | null }): string {
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
   }).format(getDeadline(jogo))

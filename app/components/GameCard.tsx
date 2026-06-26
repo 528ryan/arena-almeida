@@ -19,11 +19,15 @@ type GameCardProps = {
 
 type SaveStatus = 'idle' | 'saving' | 'saved'
 
-/** Retorna o deadline de edição: prazo_edicao se definido, senão 1h antes (mata-mata) ou 6h antes (grupos) */
+/** Retorna o deadline de edição: grupos usam prazo_edicao (ou 6h antes), mata-mata sempre 1h antes */
 function getDeadline(jogo: { data_hora: string; prazo_edicao: string | null; grupo: string | null }): Date {
-  if (jogo.prazo_edicao) return new Date(jogo.prazo_edicao)
   const d = new Date(jogo.data_hora)
-  d.setHours(d.getHours() - (jogo.grupo ? 6 : 1))
+  if (jogo.grupo) {
+    if (jogo.prazo_edicao) return new Date(jogo.prazo_edicao)
+    d.setHours(d.getHours() - 6)
+  } else {
+    d.setHours(d.getHours() - 1)
+  }
   return d
 }
 
