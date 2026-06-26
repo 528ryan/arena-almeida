@@ -209,7 +209,11 @@ export default function BracketView({ jogos, jogoTerceiro, palpitesPorJogo, user
                         jogo={jogo}
                         hasPalpite={!!palpite}
                         travado={palpite?.travado ?? false}
-                        onClick={() => jogo && setJogoSelecionado(jogo)}
+                        onClick={() => {
+                          if (!jogo) return
+                          const slot = /^(V\.|P\.|[12][A-L]$|3[oº°])/.test(jogo.time_a) || /^(V\.|P\.|[12][A-L]$|3[oº°])/.test(jogo.time_b)
+                          if (!slot) setJogoSelecionado(jogo)
+                        }}
                       />
                     </div>
                   )

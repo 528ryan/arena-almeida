@@ -1,9 +1,9 @@
 import Link from 'next/link'
-import { ChevronLeft, Trophy, Swords } from 'lucide-react'
+import { ChevronLeft, Trophy } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import BracketView from '@/app/components/BracketView'
 import GameCard from '@/app/components/GameCard'
-import type { Jogo, Palpite } from '@/types'
+import type { Jogo, Palpite, PalpiteParticipante } from '@/types'
 
 const FASE_ORDEM = [
   '16 avos de Final',
@@ -44,6 +44,14 @@ const BRACKET_ORDER = [
   110,
 ]
 
+type RawPalpiteJoin = {
+  user_id: string
+  jogo_id: number
+  gols_a: number
+  gols_b: number
+  perfis: { nome: string; foto_url: string | null } | null
+}
+
 export default async function MataMataPage() {
   const supabase = await createClient()
 
@@ -59,20 +67,40 @@ export default async function MataMataPage() {
   const jogos  = (jogosData ?? []) as Jogo[]
   const userId = user?.id ?? ''
 
-  const { data: perfilData } = await supabase
-    .from('perfis').select('nome, foto_url').eq('id', userId).single()
+  const jogoIds = jogos.map(j => j.id)
+
+  const [
+    { data: perfilData },
+    { data: palpitesData },
+    { data: allPalpitesRaw },
+  ] = await Promise.all([
+    supabase.from('perfis').select('nome, foto_url').eq('id', userId).single(),
+    supabase.from('palpites').select('*').eq('user_id', userId).in('jogo_id', jogoIds),
+    supabase
+      .from('palpites')
+      .select('user_id, jogo_id, gols_a, gols_b, perfis(nome, foto_url)')
+      .in('jogo_id', jogoIds),
+  ])
+
   const nomeUsuario = perfilData?.nome    ?? null
   const avatarUrl   = perfilData?.foto_url ?? null
-
-  const { data: palpitesData } = await supabase
-    .from('palpites')
-    .select('*')
-    .eq('user_id', userId)
-    .in('jogo_id', jogos.map(j => j.id))
 
   const palpitesPorJogo = Object.fromEntries(
     (palpitesData ?? []).map((p: Palpite) => [p.jogo_id, p])
   )
+
+  // Agrupa todos os palpites (de todos os usuários) por jogo
+  const todosPalpitesPorJogo: Record<number, PalpiteParticipante[]> = {}
+  for (const p of (allPalpitesRaw ?? []) as unknown as RawPalpiteJoin[]) {
+    if (!todosPalpitesPorJogo[p.jogo_id]) todosPalpitesPorJogo[p.jogo_id] = []
+    todosPalpitesPorJogo[p.jogo_id].push({
+      user_id: p.user_id,
+      gols_a: p.gols_a,
+      gols_b: p.gols_b,
+      nome: p.perfis?.nome ?? null,
+      foto_url: p.perfis?.foto_url ?? null,
+    })
+  }
 
   // Jogos do bracket (ordenados por posição correta da FIFA)
   const jogosParaBracket = jogos
@@ -82,12 +110,6 @@ export default async function MataMataPage() {
       const pb = BRACKET_ORDER.indexOf(b.id)
       return (pa === -1 ? 9999 : pa) - (pb === -1 ? 9999 : pb)
     })
-
-  // Stats do usuário
-  const jogosComPlacar = jogos.filter(j => j.status === 'encerrado')
-  const totalMataJogos = jogos.filter(j => j.fase && j.fase !== 'Disputa de 3º Lugar').length
-  const totalPalpites  = Object.keys(palpitesPorJogo).length
-  const totalEncerrados = jogosComPlacar.length
 
   // Fases visíveis na lista
   const fasesAbaixo = FASE_ORDEM.filter(fase => jogos.some(j => j.fase === fase))
@@ -113,35 +135,11 @@ export default async function MataMataPage() {
                 <p className="text-[#FFDF00] text-xs font-semibold">Fase Eliminatória · Copa 2026</p>
               </div>
             </div>
-            {/* Progresso compacto no header */}
-            <div className="text-right shrink-0">
-              <p className="text-[#FFDF00] font-black text-lg leading-none">{totalPalpites}</p>
-              <p className="text-white/50 text-[10px] font-semibold">/{totalMataJogos} palp.</p>
-            </div>
           </div>
         </div>
       </header>
 
       <main className="flex-1 max-w-md mx-auto w-full py-5 flex flex-col gap-6 pb-24">
-
-        {/* Banner de progresso */}
-        <section className="px-4">
-          <div className="bg-[#002776] rounded-2xl p-4 flex items-center gap-4 shadow-md">
-            <div className="w-12 h-12 rounded-xl bg-[#FFDF00]/20 flex items-center justify-center shrink-0">
-              <Swords className="w-6 h-6 text-[#FFDF00]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white font-black text-sm">Seus palpites</p>
-              <p className="text-white/50 text-xs font-semibold mt-0.5">fase eliminatória</p>
-            </div>
-            <div className="text-right shrink-0">
-              <p className="text-white font-black text-2xl leading-none">{totalPalpites}<span className="text-white/40 text-sm font-semibold">/{totalMataJogos}</span></p>
-              {totalEncerrados > 0 && (
-                <p className="text-[#009C3B] text-[10px] font-semibold mt-0.5">{totalEncerrados} encerrado{totalEncerrados > 1 ? 's' : ''}</p>
-              )}
-            </div>
-          </div>
-        </section>
 
         {/* Bracket visual */}
         {jogosParaBracket.length > 0 && (
@@ -169,23 +167,15 @@ export default async function MataMataPage() {
           const jogosFase = jogos.filter(j => j.fase === fase)
           if (jogosFase.length === 0) return null
           const meta = FASE_META[fase]
-          const palpitesFase = jogosFase.filter(j => palpitesPorJogo[j.id]).length
 
           return (
             <section key={fase} className="px-4">
               {/* Header da fase */}
-              <div className={`flex items-center justify-between rounded-xl border px-3 py-2.5 mb-3 ${meta.cor}`}>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{meta.emoji}</span>
-                  <div>
-                    <p className="font-black text-sm leading-none">{fase}</p>
-                    <p className="text-[10px] opacity-70 font-semibold mt-0.5">{meta.desc}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="font-black text-sm">{palpitesFase}</span>
-                  <span className="opacity-60 text-sm">/{jogosFase.length}</span>
-                  <p className="text-[10px] opacity-60 font-semibold">palpites</p>
+              <div className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 mb-3 ${meta.cor}`}>
+                <span className="text-lg">{meta.emoji}</span>
+                <div>
+                  <p className="font-black text-sm leading-none">{fase}</p>
+                  <p className="text-[10px] opacity-70 font-semibold mt-0.5">{meta.desc}</p>
                 </div>
               </div>
 
@@ -198,6 +188,7 @@ export default async function MataMataPage() {
                     userId={userId}
                     nomeUsuario={nomeUsuario}
                     avatarUrl={avatarUrl}
+                    todosPalpites={todosPalpitesPorJogo[jogo.id] ?? []}
                   />
                 ))}
               </div>

@@ -35,6 +35,14 @@ export type Palpite = {
   atualizado_em: string
 }
 
+export type PalpiteParticipante = {
+  user_id: string
+  gols_a: number
+  gols_b: number
+  nome: string | null
+  foto_url: string | null
+}
+
 export type Perfil = {
   id: string
   nome: string
