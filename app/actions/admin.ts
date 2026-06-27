@@ -139,6 +139,77 @@ export async function travarTodosPalpites() {
   revalidatePath('/')
 }
 
+// ─── Recalcular pontos dos palpites ────────────────────────────────────────
+function calcPontos(
+  gols_a: number, gols_b: number,
+  placar_a: number, placar_b: number,
+): number {
+  if (gols_a === placar_a && gols_b === placar_b) return 3
+  const resP = gols_a > gols_b ? 1 : gols_a < gols_b ? -1 : 0
+  const resJ = placar_a > placar_b ? 1 : placar_a < placar_b ? -1 : 0
+  return resP === resJ ? 1 : 0
+}
+
+export async function recalcularPontosMataMatata() {
+  await assertAdmin()
+  const adminClient = createAdminClient()
+
+  // 1. Busca todos os jogos de mata-mata encerrados com placar definido
+  const { data: jogosData } = await adminClient
+    .from('jogos')
+    .select('id, placar_a, placar_b')
+    .is('grupo', null)
+    .eq('status', 'encerrado')
+    .not('placar_a', 'is', null)
+
+  if (!jogosData || jogosData.length === 0) return { atualizados: 0 }
+
+  const jogoIds = jogosData.map(j => j.id)
+  const placarPorJogo = Object.fromEntries(
+    jogosData.map(j => [j.id, { placar_a: j.placar_a as number, placar_b: j.placar_b as number }])
+  )
+
+  // 2. Busca todos os palpites desses jogos
+  const { data: palpitesData } = await adminClient
+    .from('palpites')
+    .select('id, user_id, jogo_id, gols_a, gols_b')
+    .in('jogo_id', jogoIds)
+
+  if (!palpitesData || palpitesData.length === 0) return { atualizados: 0 }
+
+  // 3. Atualiza pontos de cada palpite
+  const updates = palpitesData.map(p => {
+    const jogo = placarPorJogo[p.jogo_id]
+    const pontos = calcPontos(p.gols_a, p.gols_b, jogo.placar_a, jogo.placar_b)
+    return { id: p.id, pontos }
+  })
+
+  await Promise.all(
+    updates.map(u =>
+      adminClient.from('palpites').update({ pontos: u.pontos }).eq('id', u.id)
+    )
+  )
+
+  // 4. Recalcula pontos totais de cada usuário a partir de TODOS os palpites
+  const { data: todosPalpites } = await adminClient
+    .from('palpites')
+    .select('user_id, pontos')
+
+  const totalPorUser: Record<string, number> = {}
+  for (const p of todosPalpites ?? []) {
+    totalPorUser[p.user_id] = (totalPorUser[p.user_id] ?? 0) + (p.pontos ?? 0)
+  }
+
+  await Promise.all(
+    Object.entries(totalPorUser).map(([userId, total]) =>
+      adminClient.from('perfis').update({ pontos: total }).eq('id', userId)
+    )
+  )
+
+  revalidateAll()
+  return { atualizados: updates.length }
+}
+
 export async function atualizarPago(userId: string, pago: boolean) {
   await assertAdmin()
   const adminClient = createAdminClient()

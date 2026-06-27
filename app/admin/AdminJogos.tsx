@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CheckCircle2, ChevronDown, ChevronUp, Pencil, Lock, Unlock } from 'lucide-react'
-import { fecharJogo, reabrirJogo, atualizarTimes } from '@/app/actions/admin'
+import { CheckCircle2, ChevronDown, ChevronUp, Pencil, Lock, Unlock, RefreshCw } from 'lucide-react'
+import { fecharJogo, reabrirJogo, atualizarTimes, recalcularPontosMataMatata } from '@/app/actions/admin'
 import { calcularClassificacao } from '@/lib/classificacao'
 import type { Jogo, ClassificacaoTime } from '@/types'
 
@@ -300,6 +300,9 @@ const FASES_ORDEM = [
 ]
 
 export default function AdminJogos({ jogos }: { jogos: Jogo[] }) {
+  const [recalcPending, startRecalc] = useTransition()
+  const [recalcMsg, setRecalcMsg] = useState<string | null>(null)
+
   const grupos   = jogos.filter(j => j.grupo)
   const knockout = jogos.filter(j => !j.grupo)
 
@@ -355,7 +358,27 @@ export default function AdminJogos({ jogos }: { jogos: Jogo[] }) {
       {/* Mata-mata */}
       {fasesKnockout.length > 0 && (
         <>
-          <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest px-1 pt-4 pb-1">Mata-Mata</p>
+          <div className="flex items-center justify-between px-1 pt-4 pb-1">
+            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Mata-Mata</p>
+            <div className="flex items-center gap-2">
+              {recalcMsg && (
+                <span className="text-[10px] text-[#009C3B] font-bold">{recalcMsg}</span>
+              )}
+              <button
+                disabled={recalcPending}
+                onClick={() => startRecalc(async () => {
+                  const r = await recalcularPontosMataMatata()
+                  setRecalcMsg(`✓ ${r.atualizados} palpites atualizados`)
+                  setTimeout(() => setRecalcMsg(null), 4000)
+                })}
+                className="flex items-center gap-1 text-[11px] text-[#002776] font-bold disabled:opacity-40 active:opacity-60"
+                title="Recalcular pontos de todos os palpites do mata-mata"
+              >
+                <RefreshCw className={`w-3 h-3 ${recalcPending ? 'animate-spin' : ''}`} />
+                Recalcular pontos
+              </button>
+            </div>
+          </div>
           {fasesKnockout.map(f => (
             <Secao
               key={f}
