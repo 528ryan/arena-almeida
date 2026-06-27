@@ -24,109 +24,81 @@ function calcStatus(jogo: JogoHoje, now: Date, proximaDataHora: string | null): 
 
 function AvatarScorer({ nome, foto_url }: { nome: string; foto_url: string | null }) {
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-center gap-1">
       {foto_url ? (
-        <Image
-          src={foto_url}
-          alt={nome}
-          width={14}
-          height={14}
-          className="rounded-full object-cover flex-shrink-0"
-        />
+        <Image src={foto_url} alt={nome} width={16} height={16} className="rounded-full object-cover flex-shrink-0" />
       ) : (
-        <div className="w-3.5 h-3.5 rounded-full bg-[#002776]/20 flex items-center justify-center flex-shrink-0">
-          <span className="text-[7px] font-black text-[#002776]">{nome[0]}</span>
+        <div className="w-4 h-4 rounded-full bg-white/30 flex items-center justify-center flex-shrink-0">
+          <span className="text-[8px] font-black text-white">{nome[0]}</span>
         </div>
       )}
-      <span className="text-[9px] font-semibold text-gray-600 max-w-[44px] truncate leading-none">
+      <span className="text-[10px] font-semibold text-white/80 max-w-[48px] truncate leading-none">
         {nome.split(' ')[0]}
       </span>
     </div>
   )
 }
 
-/** Card em destaque para próximo jogo — full width, tema verde */
-function CardEmBreve({ jogo, minutosRestantes }: { jogo: JogoHoje; minutosRestantes: number }) {
+function FaseLabel({ jogo }: { jogo: JogoHoje }) {
   const label = jogo.grupo ? `Grupo ${jogo.grupo}` : (jogo.fase ?? 'Eliminatória')
-  const hora  = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(jogo.data_hora))
-
-  return (
-    <div className="rounded-2xl border-2 border-[#009C3B]/30 bg-[#009C3B]/5 overflow-hidden shadow-sm">
-      <div className="bg-[#009C3B] px-4 py-2 flex items-center justify-between">
-        <span className="text-white text-xs font-black">EM BREVE · {hora}</span>
-        <span className="text-green-200 text-xs font-semibold uppercase tracking-wide">{label}</span>
-      </div>
-
-      <div className="px-4 py-4 flex items-center gap-3">
-        <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
-          <FlagImg nome={jogo.time_a} size={28} />
-          <span className="font-black text-gray-800 text-sm text-center leading-tight">{jogo.time_a}</span>
-        </div>
-
-        <div className="shrink-0 flex flex-col items-center gap-1">
-          <span className="font-black text-2xl text-[#009C3B]">VS</span>
-          {minutosRestantes <= 90 && (
-            <span className="text-[10px] text-[#009C3B] font-bold bg-[#009C3B]/10 px-2 py-0.5 rounded-full">
-              em {minutosRestantes} min
-            </span>
-          )}
-        </div>
-
-        <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
-          <FlagImg nome={jogo.time_b} size={28} />
-          <span className="font-black text-gray-800 text-sm text-center leading-tight">{jogo.time_b}</span>
-        </div>
-      </div>
-    </div>
-  )
+  return <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">{label}</span>
 }
 
-/** Card em destaque para jogo ao vivo — full width */
+/** Card AO VIVO — destaque full width */
 function CardAoVivo({ jogo }: { jogo: JogoHoje }) {
-  const label = jogo.grupo ? `Grupo ${jogo.grupo}` : (jogo.fase ?? 'Eliminatória')
+  const vencedorA = jogo.placar_a !== null && jogo.placar_b !== null && jogo.placar_a > jogo.placar_b
+  const vencedorB = jogo.placar_a !== null && jogo.placar_b !== null && jogo.placar_b > jogo.placar_a
 
   return (
-    <div className="rounded-2xl border-2 border-red-300 bg-red-50 overflow-hidden shadow-md">
+    <div className="rounded-2xl overflow-hidden shadow-lg">
       {/* Header */}
-      <div className="bg-red-500 px-4 py-2 flex items-center justify-between">
+      <div className="bg-red-600 px-4 py-2 flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-white text-xs font-black">
-          <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+          <span className="w-2 h-2 rounded-full bg-white animate-pulse shrink-0" />
           AO VIVO
         </span>
-        <span className="text-red-200 text-xs font-semibold uppercase tracking-wide">{label}</span>
+        <FaseLabel jogo={jogo} />
       </div>
 
-      {/* Times + placar */}
-      <div className="px-4 py-4 flex items-center gap-3">
+      {/* Corpo */}
+      <div className="bg-gradient-to-b from-red-700 to-[#002776] px-5 py-5 flex items-center gap-3">
         {/* Time A */}
-        <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
-          <FlagImg nome={jogo.time_a} size={28} />
-          <span className="font-black text-gray-800 text-sm text-center leading-tight">{jogo.time_a}</span>
+        <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
+          <FlagImg nome={jogo.time_a} size={44} />
+          <span className={`font-black text-sm text-center leading-tight truncate w-full ${vencedorA ? 'text-[#FFDF00]' : 'text-white'}`}>
+            {jogo.time_a}
+          </span>
         </div>
 
         {/* Placar */}
-        <div className="shrink-0 flex flex-col items-center">
-          <span className="font-black text-4xl text-[#002776] tabular-nums leading-none">
-            {jogo.placar_a ?? '–'}&thinsp;{jogo.placar_b ?? '–'}
-          </span>
-          <span className="text-[10px] text-red-400 font-bold mt-1 animate-pulse">EM ANDAMENTO</span>
+        <div className="shrink-0 flex flex-col items-center gap-1">
+          <div className="flex items-center gap-2">
+            <span className={`font-black text-5xl tabular-nums leading-none ${vencedorA ? 'text-[#FFDF00]' : 'text-white'}`}>
+              {jogo.placar_a ?? '–'}
+            </span>
+            <span className="text-white/30 font-black text-3xl">:</span>
+            <span className={`font-black text-5xl tabular-nums leading-none ${vencedorB ? 'text-[#FFDF00]' : 'text-white'}`}>
+              {jogo.placar_b ?? '–'}
+            </span>
+          </div>
+          <span className="text-[10px] text-red-300 font-bold animate-pulse">EM ANDAMENTO</span>
         </div>
 
         {/* Time B */}
-        <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
-          <FlagImg nome={jogo.time_b} size={28} />
-          <span className="font-black text-gray-800 text-sm text-center leading-tight">{jogo.time_b}</span>
+        <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
+          <FlagImg nome={jogo.time_b} size={44} />
+          <span className={`font-black text-sm text-center leading-tight truncate w-full ${vencedorB ? 'text-[#FFDF00]' : 'text-white'}`}>
+            {jogo.time_b}
+          </span>
         </div>
       </div>
 
-      {/* Top scorers se houver */}
+      {/* Top scorers */}
       {jogo.topScorers.length > 0 && (
-        <div className="px-4 pb-3 flex items-center gap-2 border-t border-red-200 pt-2">
-          <span className="text-[10px] text-red-400 font-bold">🎯 Pontuou:</span>
-          <div className="flex gap-2 flex-wrap">
-            {jogo.topScorers.map(s => (
-              <AvatarScorer key={s.nome} nome={s.nome} foto_url={s.foto_url} />
-            ))}
+        <div className="bg-[#002776] px-4 py-2 flex items-center gap-2 border-t border-white/10">
+          <span className="text-[10px] text-[#FFDF00] font-bold shrink-0">🎯 Pontuou:</span>
+          <div className="flex gap-2.5 flex-wrap">
+            {jogo.topScorers.map(s => <AvatarScorer key={s.nome} nome={s.nome} foto_url={s.foto_url} />)}
           </div>
         </div>
       )}
@@ -134,72 +106,129 @@ function CardAoVivo({ jogo }: { jogo: JogoHoje }) {
   )
 }
 
-/** Card compacto no scroll horizontal */
-function CardJogo({ jogo, status }: { jogo: JogoHoje; status: StatusJogo }) {
-  const hora = new Intl.DateTimeFormat('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(jogo.data_hora))
-
-  const borderCls =
-    status === 'em_breve' ? 'border-[#009C3B]/30' : 'border-gray-100'
-
-  const bgCls =
-    status === 'em_breve' ? 'bg-[#009C3B]/5' : 'bg-white'
-
-  const headerCls =
-    status === 'em_breve' ? 'bg-[#009C3B]' : 'bg-[#002776]/5'
+/** Card EM BREVE — destaque full width */
+function CardEmBreve({ jogo, minutosRestantes }: { jogo: JogoHoje; minutosRestantes: number }) {
+  const hora = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(jogo.data_hora))
 
   return (
-    <div className={`flex-shrink-0 w-[138px] rounded-2xl border shadow-sm overflow-hidden ${borderCls} ${bgCls}`}>
-      {/* Status / hora */}
-      <div className={`px-2 py-1.5 flex items-center justify-center ${headerCls}`}>
-        {status === 'em_breve' && (
-          <span className="text-white text-[10px] font-black">EM BREVE · {hora}</span>
-        )}
-        {(status === 'futuro' || status === 'encerrado') && (
-          <span className={`text-[10px] font-bold ${status === 'encerrado' ? 'text-gray-500' : 'text-[#002776]/60'}`}>
-            {hora}
+    <div className="rounded-2xl overflow-hidden shadow-md">
+      {/* Header */}
+      <div className="bg-[#009C3B] px-4 py-2 flex items-center justify-between">
+        <span className="text-white text-xs font-black">EM BREVE · {hora}</span>
+        <FaseLabel jogo={jogo} />
+      </div>
+
+      {/* Corpo */}
+      <div className="bg-gradient-to-b from-[#009C3B]/90 to-[#002776] px-5 py-5 flex items-center gap-3">
+        <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
+          <FlagImg nome={jogo.time_a} size={40} />
+          <span className="font-black text-white text-sm text-center leading-tight truncate w-full">{jogo.time_a}</span>
+        </div>
+
+        <div className="shrink-0 flex flex-col items-center gap-1.5">
+          <span className="font-black text-white/50 text-2xl">VS</span>
+          {minutosRestantes <= 90 && (
+            <span className="text-[11px] text-[#FFDF00] font-bold bg-[#FFDF00]/15 px-2.5 py-0.5 rounded-full">
+              em {minutosRestantes} min
+            </span>
+          )}
+        </div>
+
+        <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
+          <FlagImg nome={jogo.time_b} size={40} />
+          <span className="font-black text-white text-sm text-center leading-tight truncate w-full">{jogo.time_b}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Card compacto no scroll horizontal */
+function CardJogo({ jogo, status }: { jogo: JogoHoje; status: StatusJogo }) {
+  const hora = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(jogo.data_hora))
+  const enc  = status === 'encerrado'
+  const vencedorA = enc && jogo.placar_a !== null && jogo.placar_b !== null && jogo.placar_a > jogo.placar_b
+  const vencedorB = enc && jogo.placar_a !== null && jogo.placar_b !== null && jogo.placar_b > jogo.placar_a
+
+  return (
+    <div className={`flex-shrink-0 w-[152px] rounded-2xl border overflow-hidden shadow-sm ${
+      enc ? 'border-gray-100 bg-white' : 'border-[#002776]/10 bg-white'
+    }`}>
+      {/* Header */}
+      <div className={`px-3 py-1.5 flex items-center justify-between ${
+        enc ? 'bg-gray-50' : 'bg-[#002776]/5'
+      }`}>
+        <span className={`text-[10px] font-black ${enc ? 'text-gray-400' : 'text-[#002776]/50'}`}>
+          {hora}
+        </span>
+        <span className={`text-[9px] font-bold uppercase tracking-wide ${enc ? 'text-gray-300' : 'text-[#002776]/30'}`}>
+          {jogo.grupo ? `Gr. ${jogo.grupo}` : 'MM'}
+        </span>
+      </div>
+
+      {/* Times */}
+      <div className="px-3 py-2.5 flex flex-col gap-2">
+        {/* Time A */}
+        <div className="flex items-center gap-2">
+          <FlagImg nome={jogo.time_a} size={20} />
+          <span className={`text-[11px] font-bold flex-1 truncate leading-none ${vencedorA ? 'text-[#009C3B] font-black' : 'text-gray-700'}`}>
+            {jogo.time_a}
           </span>
-        )}
+          {enc && jogo.placar_a !== null ? (
+            <span className={`font-black text-sm tabular-nums leading-none ${vencedorA ? 'text-[#009C3B]' : 'text-gray-500'}`}>
+              {jogo.placar_a}
+            </span>
+          ) : (
+            <span className="text-gray-200 text-sm font-bold leading-none">-</span>
+          )}
+        </div>
+
+        <div className="h-px bg-gray-100" />
+
+        {/* Time B */}
+        <div className="flex items-center gap-2">
+          <FlagImg nome={jogo.time_b} size={20} />
+          <span className={`text-[11px] font-bold flex-1 truncate leading-none ${vencedorB ? 'text-[#009C3B] font-black' : 'text-gray-700'}`}>
+            {jogo.time_b}
+          </span>
+          {enc && jogo.placar_b !== null ? (
+            <span className={`font-black text-sm tabular-nums leading-none ${vencedorB ? 'text-[#009C3B]' : 'text-gray-500'}`}>
+              {jogo.placar_b}
+            </span>
+          ) : (
+            <span className="text-gray-200 text-sm font-bold leading-none">-</span>
+          )}
+        </div>
       </div>
 
-      {/* Times + placar */}
-      <div className="px-2.5 py-2 flex flex-col gap-1">
-        {[
-          { nome: jogo.time_a, placar: jogo.placar_a },
-          { nome: jogo.time_b, placar: jogo.placar_b },
-        ].map(({ nome, placar }) => (
-          <div key={nome} className="flex items-center justify-between gap-1">
-            <span className="text-[11px] font-bold text-gray-800 truncate flex-1 leading-none">{nome}</span>
-            {status === 'encerrado' && placar !== null ? (
-              <span className="font-black text-sm tabular-nums text-[#002776] leading-none">{placar}</span>
-            ) : (
-              <span className="text-gray-300 text-sm font-bold leading-none">-</span>
-            )}
-          </div>
-        ))}
-
-        {/* Top scorers */}
-        {status === 'encerrado' && (
-          <div className="border-t border-gray-100 pt-1.5 mt-0.5">
-            {jogo.topScorers.length > 0 ? (
-              <>
-                <p className="text-[9px] text-gray-400 font-semibold mb-1 leading-none">
-                  {jogo.topScorers[0].pontos === 3 ? '🎯' : '⚡'} Pontuou
-                </p>
-                <div className="flex flex-wrap gap-x-1.5 gap-y-1">
-                  {jogo.topScorers.map((s) => (
-                    <AvatarScorer key={`${jogo.id}-${s.nome}`} nome={s.nome} foto_url={s.foto_url} />
-                  ))}
+      {/* Footer scorers */}
+      {enc && (
+        <div className="px-3 pb-2.5 border-t border-gray-50 pt-2">
+          {jogo.topScorers.length > 0 ? (
+            <div className="flex flex-wrap gap-x-1.5 gap-y-1">
+              <span className="text-[9px] text-[#009C3B] font-bold w-full leading-none mb-0.5">
+                {jogo.topScorers[0].pontos === 3 ? '🎯' : '⚡'} Pontuou
+              </span>
+              {jogo.topScorers.slice(0, 3).map(s => (
+                <div key={`${jogo.id}-${s.nome}`} className="flex items-center gap-0.5">
+                  {s.foto_url ? (
+                    <Image src={s.foto_url} alt={s.nome} width={12} height={12} className="rounded-full object-cover" />
+                  ) : (
+                    <div className="w-3 h-3 rounded-full bg-[#002776]/15 flex items-center justify-center">
+                      <span className="text-[7px] font-black text-[#002776]">{s.nome[0]}</span>
+                    </div>
+                  )}
+                  <span className="text-[9px] text-gray-500 font-semibold max-w-[38px] truncate">
+                    {s.nome.split(' ')[0]}
+                  </span>
                 </div>
-              </>
-            ) : (
-              <p className="text-[9px] text-gray-400 font-semibold leading-none">Sem pontuadores</p>
-            )}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[9px] text-gray-300 font-semibold">Sem pontuadores</p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -214,7 +243,6 @@ export default function JogosDia({ jogos }: { jogos: JogoHoje[] }) {
 
   if (jogos.length === 0) return null
 
-  // Earliest pending game = EM BREVE
   const pendentes = jogos.filter(j => j.status === 'pendente' && new Date(j.data_hora) > now)
   const proximaDataHora = pendentes.length > 0
     ? pendentes.reduce((min, j) => j.data_hora < min ? j.data_hora : min, pendentes[0].data_hora)
@@ -225,14 +253,12 @@ export default function JogosDia({ jogos }: { jogos: JogoHoje[] }) {
   const aoVivos  = comStatus.filter(({ status }) => status === 'ao_vivo')
   const emBreves = comStatus.filter(({ status }) => status === 'em_breve')
 
-  // ao_vivo tem prioridade; sem ao_vivo → promove o em_breve para destaque
   const temAoVivo       = aoVivos.length > 0
   const emBreveDestaque = !temAoVivo && emBreves.length > 0 ? emBreves[0] : null
   const minutosRestantes = emBreveDestaque
     ? Math.max(0, Math.round((new Date(emBreveDestaque.jogo.data_hora).getTime() - now.getTime()) / 60_000))
     : 0
 
-  // Remove os jogos em destaque do scroll
   const idsDestaque = new Set([
     ...aoVivos.map(({ jogo }) => jogo.id),
     ...(emBreveDestaque ? [emBreveDestaque.jogo.id] : []),
@@ -244,21 +270,25 @@ export default function JogosDia({ jogos }: { jogos: JogoHoje[] }) {
       return order[a.status] - order[b.status]
     })
 
-  return (
-    <section className="flex flex-col gap-2">
-      <h2 className="text-[#002776] font-black text-sm">Jogos de Hoje</h2>
+  const dataHoje = new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'long', day: '2-digit', month: '2-digit',
+  }).format(now)
 
-      {/* Ao vivo em destaque */}
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-[#002776] font-black text-base">Jogos de Hoje</h2>
+        <span className="text-[11px] text-gray-400 font-semibold capitalize">{dataHoje}</span>
+      </div>
+
       {aoVivos.map(({ jogo }) => (
         <CardAoVivo key={jogo.id} jogo={jogo} />
       ))}
 
-      {/* Em breve em destaque (só quando não há ao vivo) */}
       {emBreveDestaque && (
         <CardEmBreve jogo={emBreveDestaque.jogo} minutosRestantes={minutosRestantes} />
       )}
 
-      {/* Demais jogos no scroll */}
       {restantes.length > 0 && (
         <div className="flex gap-2.5 overflow-x-auto -mx-4 px-4 pb-1" style={{ scrollbarWidth: 'none' }}>
           {restantes.map(({ jogo, status }) => (
