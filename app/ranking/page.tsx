@@ -160,24 +160,25 @@ const PODIUM_BASE_H  = ['h-20', 'h-12', 'h-8']
 const PODIUM_BASE_BG = ['bg-yellow-400/20', 'bg-gray-300/30', 'bg-amber-600/15']
 
 function PodiumCard({
-  jogador, posicao, isMe,
+  jogador, rank, isMe,
 }: {
-  jogador: JogadorRanking; posicao: number; isMe: boolean
+  jogador: JogadorRanking; rank: 1 | 2 | 3; isMe: boolean
 }) {
-  const grande = posicao === 0
+  const idx    = rank - 1
+  const grande = rank === 1
   const size   = grande ? 80 : 60
   const href   = isMe ? '/perfil' : `/perfil/${jogador.perfil.id}`
 
   return (
     <Link href={href} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform min-w-0">
       {/* Coroa / medalha */}
-      {posicao === 0
+      {rank === 1
         ? <Crown className="w-7 h-7 text-yellow-400 drop-shadow" />
-        : <span className="text-2xl">{posicao === 1 ? '🥈' : '🥉'}</span>
+        : <span className="text-2xl">{rank === 2 ? '🥈' : '🥉'}</span>
       }
 
       {/* Avatar */}
-      <Avatar perfil={jogador.perfil} size={size} ringCls={PODIUM_RING[posicao]} />
+      <Avatar perfil={jogador.perfil} size={size} ringCls={PODIUM_RING[idx]} />
 
       {/* Nome */}
       <p className={`font-black text-center text-[#002776] truncate leading-tight ${
@@ -199,12 +200,12 @@ function PodiumCard({
       <Dots ultimas5={jogador.ultimas5} />
 
       {/* Pontos */}
-      <div className={`rounded-xl px-3 py-1 font-black text-sm ${PODIUM_PTS[posicao]}`}>
+      <div className={`rounded-xl px-3 py-1 font-black text-sm ${PODIUM_PTS[idx]}`}>
         {jogador.perfil.pontos} <span className="font-normal opacity-70 text-xs">pts</span>
       </div>
 
       {/* Plataforma */}
-      <div className={`w-full rounded-t-lg ${PODIUM_BASE_H[posicao]} ${PODIUM_BASE_BG[posicao]}`} />
+      <div className={`w-full rounded-t-lg ${PODIUM_BASE_H[idx]} ${PODIUM_BASE_BG[idx]}`} />
     </Link>
   )
 }
@@ -373,16 +374,33 @@ export default async function RankingPage({
     }
   }
 
-  // Stats por jogador
-  const todosComStats: JogadorRanking[] = todos.map((perfil, i) => ({
-    perfil,
-    posicao: i + 1,
-    ...computarStats(perfil.id, jogosOrdenados, palpitesPorUser),
-  }))
+  // Stats por jogador com posições por empate
+  let posAtual = 1
+  const todosComStats: JogadorRanking[] = todos.map((perfil, i) => {
+    if (i > 0 && perfil.pontos !== todos[i - 1].pontos) posAtual = i + 1
+    return {
+      perfil,
+      posicao: posAtual,
+      ...computarStats(perfil.id, jogosOrdenados, palpitesPorUser),
+    }
+  })
 
-  const top3  = todosComStats.slice(0, 3)
-  const resto = todosComStats.slice(3)
-  const eu    = user ? todosComStats.find(j => j.perfil.id === user.id) : undefined
+  // Pódio: todos com posicao <= 3 (podem ser mais de 3 em caso de empate)
+  const podiumJogadores = todosComStats.filter(j => j.posicao <= 3)
+  const resto           = todosComStats.filter(j => j.posicao > 3)
+  const eu              = user ? todosComStats.find(j => j.perfil.id === user.id) : undefined
+
+  // Layout clássico escalonado: apenas quando há exatamente 1 por posição (1°,2°,3°)
+  const isStandardPodium =
+    podiumJogadores.length === 3 &&
+    podiumJogadores[0].posicao === 1 &&
+    podiumJogadores[1].posicao === 2 &&
+    podiumJogadores[2].posicao === 3
+
+  // Última posição para destacar em vermelho todos os empatados
+  const ultimaPosicao = todosComStats.length > 1
+    ? todosComStats[todosComStats.length - 1].posicao
+    : -1
 
   // Artilharia: contagem de placares exatos (pontos = 3) em TODOS os jogos encerrados
   let artilheiros: Artilheiro[] = []
@@ -478,20 +496,42 @@ export default async function RankingPage({
             {eu && eu.posicao > 3 && <MinhaPosicao jogador={eu} />}
 
             {/* Pódio */}
-            {top3.length > 0 && (
+            {podiumJogadores.length > 0 && (
               <section className="bg-white rounded-3xl shadow-sm border border-gray-100 pt-5 pb-0 overflow-hidden">
                 <p className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
                   Pódio
                 </p>
-                <div className="flex items-end justify-center gap-4 px-4">
-                  {top3[1] && (
-                    <PodiumCard jogador={top3[1]} posicao={1} isMe={top3[1].perfil.id === user?.id} />
-                  )}
-                  <PodiumCard jogador={top3[0]} posicao={0} isMe={top3[0].perfil.id === user?.id} />
-                  {top3[2] && (
-                    <PodiumCard jogador={top3[2]} posicao={2} isMe={top3[2].perfil.id === user?.id} />
-                  )}
-                </div>
+
+                {isStandardPodium ? (
+                  /* Layout clássico escalonado 2-1-3 */
+                  <div className="flex items-end justify-center gap-4 px-4">
+                    <PodiumCard jogador={podiumJogadores[1]} rank={2} isMe={podiumJogadores[1].perfil.id === user?.id} />
+                    <PodiumCard jogador={podiumJogadores[0]} rank={1} isMe={podiumJogadores[0].perfil.id === user?.id} />
+                    <PodiumCard jogador={podiumJogadores[2]} rank={3} isMe={podiumJogadores[2].perfil.id === user?.id} />
+                  </div>
+                ) : (
+                  /* Layout com empates: grupos por posição */
+                  <div className="px-4 flex flex-col gap-5">
+                    {([1, 2, 3] as const).map(rank => {
+                      const grupo = podiumJogadores.filter(j => j.posicao === rank)
+                      if (grupo.length === 0) return null
+                      return (
+                        <div key={rank} className="flex flex-col items-center gap-3">
+                          <div className="flex gap-4 justify-center flex-wrap">
+                            {grupo.map(j => (
+                              <PodiumCard key={j.perfil.id} jogador={j} rank={rank} isMe={j.perfil.id === user?.id} />
+                            ))}
+                          </div>
+                          {grupo.length > 1 && (
+                            <span className="text-[10px] text-gray-400 font-semibold -mt-1">
+                              {grupo.length} empatados
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </section>
             )}
 
@@ -506,12 +546,12 @@ export default async function RankingPage({
                   <Legenda />
                 </div>
 
-                {resto.map((jogador, i) => (
+                {resto.map(jogador => (
                   <LinhaRanking
                     key={jogador.perfil.id}
                     jogador={jogador}
                     isMe={jogador.perfil.id === user?.id}
-                    isLast={i === resto.length - 1 && todosComStats.length > 1}
+                    isLast={jogador.posicao === ultimaPosicao}
                   />
                 ))}
               </section>
