@@ -5,6 +5,56 @@ import Image from 'next/image'
 import FlagImg from './FlagImg'
 import type { Jogo } from '@/types'
 
+/** Card de contexto: ontem (último) ou amanhã (primeiro) */
+function CardContexto({ jogo, rotulo }: { jogo: Jogo; rotulo: 'Ontem' | 'Amanhã' }) {
+  const hora = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(jogo.data_hora))
+  const enc  = jogo.status === 'encerrado'
+  const vencedorA = enc && jogo.placar_a !== null && jogo.placar_b !== null && jogo.placar_a > jogo.placar_b
+  const vencedorB = enc && jogo.placar_a !== null && jogo.placar_b !== null && jogo.placar_b > jogo.placar_a
+  const label = jogo.grupo ? `Gr. ${jogo.grupo}` : 'MM'
+
+  return (
+    <div className="flex-shrink-0 w-[152px] rounded-2xl border border-dashed border-gray-200 overflow-hidden bg-gray-50/80 opacity-75">
+      <div className="px-3 py-1.5 flex items-center justify-between bg-gray-100/80">
+        <span className="text-[10px] font-black text-gray-400">{rotulo} · {hora}</span>
+        <span className="text-[9px] font-bold text-gray-300 uppercase">{label}</span>
+      </div>
+
+      <div className="px-3 py-2.5 flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <FlagImg nome={jogo.time_a} size={20} />
+          <span className={`text-[11px] font-bold flex-1 truncate leading-none ${vencedorA ? 'text-[#009C3B] font-black' : 'text-gray-500'}`}>
+            {jogo.time_a}
+          </span>
+          {enc && jogo.placar_a !== null ? (
+            <span className={`font-black text-sm tabular-nums leading-none ${vencedorA ? 'text-[#009C3B]' : 'text-gray-400'}`}>
+              {jogo.placar_a}
+            </span>
+          ) : (
+            <span className="text-gray-200 text-sm font-bold leading-none">-</span>
+          )}
+        </div>
+
+        <div className="h-px bg-gray-100" />
+
+        <div className="flex items-center gap-2">
+          <FlagImg nome={jogo.time_b} size={20} />
+          <span className={`text-[11px] font-bold flex-1 truncate leading-none ${vencedorB ? 'text-[#009C3B] font-black' : 'text-gray-500'}`}>
+            {jogo.time_b}
+          </span>
+          {enc && jogo.placar_b !== null ? (
+            <span className={`font-black text-sm tabular-nums leading-none ${vencedorB ? 'text-[#009C3B]' : 'text-gray-400'}`}>
+              {jogo.placar_b}
+            </span>
+          ) : (
+            <span className="text-gray-200 text-sm font-bold leading-none">-</span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export type TopScorer = { nome: string; foto_url: string | null; pontos: number }
 export type JogoHoje = Jogo & { topScorers: TopScorer[] }
 
@@ -233,7 +283,11 @@ function CardJogo({ jogo, status }: { jogo: JogoHoje; status: StatusJogo }) {
   )
 }
 
-export default function JogosDia({ jogos }: { jogos: JogoHoje[] }) {
+export default function JogosDia({ jogos, jogoAnterior, jogoPosterior }: {
+  jogos: JogoHoje[]
+  jogoAnterior?: Jogo | null
+  jogoPosterior?: Jogo | null
+}) {
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
@@ -289,11 +343,13 @@ export default function JogosDia({ jogos }: { jogos: JogoHoje[] }) {
         <CardEmBreve jogo={emBreveDestaque.jogo} minutosRestantes={minutosRestantes} />
       )}
 
-      {restantes.length > 0 && (
+      {(jogoAnterior || restantes.length > 0 || jogoPosterior) && (
         <div className="flex gap-2.5 overflow-x-auto -mx-4 px-4 pb-1" style={{ scrollbarWidth: 'none' }}>
+          {jogoAnterior && <CardContexto jogo={jogoAnterior} rotulo="Ontem" />}
           {restantes.map(({ jogo, status }) => (
             <CardJogo key={jogo.id} jogo={jogo} status={status} />
           ))}
+          {jogoPosterior && <CardContexto jogo={jogoPosterior} rotulo="Amanhã" />}
         </div>
       )}
     </section>

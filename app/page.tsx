@@ -16,7 +16,13 @@ export default async function Home() {
   const todayStartUTC = new Date(`${todayStr}T00:00:00-03:00`)
   const tomorrowStartUTC = new Date(todayStartUTC.getTime() + 24 * 60 * 60 * 1000)
 
-  const [{ data: jogosData }, { data: { user } }, { data: jogosDiaData }] = await Promise.all([
+  const [
+    { data: jogosData },
+    { data: { user } },
+    { data: jogosDiaData },
+    { data: jogoAnteriorData },
+    { data: jogoPosteriorData },
+  ] = await Promise.all([
     supabase.from('jogos').select('id, grupo, status, data_hora').not('grupo', 'is', null),
     supabase.auth.getUser(),
     supabase
@@ -25,6 +31,18 @@ export default async function Home() {
       .gte('data_hora', todayStartUTC.toISOString())
       .lt('data_hora', tomorrowStartUTC.toISOString())
       .order('data_hora', { ascending: true }),
+    supabase
+      .from('jogos')
+      .select('*')
+      .lt('data_hora', todayStartUTC.toISOString())
+      .order('data_hora', { ascending: false })
+      .limit(1),
+    supabase
+      .from('jogos')
+      .select('*')
+      .gte('data_hora', tomorrowStartUTC.toISOString())
+      .order('data_hora', { ascending: true })
+      .limit(1),
   ])
 
   // Top scorers for finished games today
@@ -130,7 +148,11 @@ export default async function Home() {
 
       <main className="flex-1 max-w-md mx-auto w-full px-4 py-6 flex flex-col gap-5">
 
-        <JogosDia jogos={jogosDia} />
+        <JogosDia
+          jogos={jogosDia}
+          jogoAnterior={(jogoAnteriorData?.[0] ?? null) as import('@/types').Jogo | null}
+          jogoPosterior={(jogoPosteriorData?.[0] ?? null) as import('@/types').Jogo | null}
+        />
 
         {/* Seção: Mata-Mata */}
         <section>
