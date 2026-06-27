@@ -132,30 +132,6 @@ export default async function Home() {
 
         <JogosDia jogos={jogosDia} />
 
-        <ContadorRegressivo />
-
-        {/* Seção: Fase de Grupos */}
-        <section>
-          <div className="flex items-center gap-2 mb-3">
-            <LayoutGrid className="w-5 h-5 text-[#002776]" strokeWidth={2.5} />
-            <h2 className="text-[#002776] font-black text-lg">Fase de Grupos</h2>
-          </div>
-
-          {gruposOrdenados.length === 0 ? (
-            <p className="text-center text-gray-400 py-8">Nenhum grupo cadastrado ainda.</p>
-          ) : (
-            <GruposFiltro
-            grupos={gruposOrdenados}
-            jogosGrupo={(jogosData ?? []).map(j => ({
-              id: j.id as number,
-              grupo: j.grupo as string,
-              status: j.status as string,
-              data_hora: j.data_hora as string,
-            }))}
-          />
-          )}
-        </section>
-
         {/* Seção: Mata-Mata */}
         <section>
           <div className="flex items-center gap-2 mb-3">
@@ -178,6 +154,30 @@ export default async function Home() {
               </div>
             </div>
           </Link>
+        </section>
+
+        <ContadorRegressivo />
+
+        {/* Seção: Fase de Grupos */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <LayoutGrid className="w-5 h-5 text-[#002776]" strokeWidth={2.5} />
+            <h2 className="text-[#002776] font-black text-lg">Fase de Grupos</h2>
+          </div>
+
+          {gruposOrdenados.length === 0 ? (
+            <p className="text-center text-gray-400 py-8">Nenhum grupo cadastrado ainda.</p>
+          ) : (
+            <GruposFiltro
+            grupos={gruposOrdenados}
+            jogosGrupo={(jogosData ?? []).map(j => ({
+              id: j.id as number,
+              grupo: j.grupo as string,
+              status: j.status as string,
+              data_hora: j.data_hora as string,
+            }))}
+          />
+          )}
         </section>
       </main>
 
