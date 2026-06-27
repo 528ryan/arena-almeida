@@ -1,37 +1,39 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CheckCircle2, ChevronDown, ChevronUp, Pencil, Lock, Unlock, RefreshCw } from 'lucide-react'
-import { fecharJogo, reabrirJogo, atualizarTimes, resolverSlots } from '@/app/actions/admin'
+import { CheckCircle2, ChevronDown, ChevronUp, Pencil, Lock, Unlock } from 'lucide-react'
+import { fecharJogo, reabrirJogo, atualizarTimes } from '@/app/actions/admin'
 import { calcularClassificacao } from '@/lib/classificacao'
 import type { Jogo, ClassificacaoTime } from '@/types'
 
 // ─── Helpers de slot ───────────────────────────────────────────────────────
-// "1A", "1 A", "1º A", "1º Grupo A", "2B", etc. → auto-resolvidos quando o grupo encerra
-function isSlotAuto(nome: string) {
-  return /^[12]\s*[º°o]?\s*(Grupo\s*)?[A-L]$/i.test(nome.trim())
+function isGroupSlot(nome: string) {
+  return /^[12]\s*[º°o]?\s*(Grupo\s*)?[A-L]$/i.test(nome.trim()) || /^3[º°]/.test(nome)
 }
-
-// "3º Melhor", "3º (A/B/C)", "3º TBD" → seleção manual pelo admin
-function isSlotTerceiro(nome: string) {
-  return /^3[º°]/.test(nome)
+function isKnockoutSlot(nome: string) {
+  return /^(V\.|P\.)/.test(nome)
 }
-
 function isSlot(nome: string) {
-  return isSlotAuto(nome) || isSlotTerceiro(nome)
+  return isGroupSlot(nome) || isKnockoutSlot(nome)
 }
 
-// ─── Seletor de terceiros colocados ──────────────────────────────────────
-function TerceiroSelector({
+// ─── Tipos ─────────────────────────────────────────────────────────────────
+type TimeDisponivel = {
+  nome: string
+  info: string // e.g. "1º Grupo A", "3º Melhor #1"
+}
+
+// ─── Seletor unificado de times ─────────────────────────────────────────────
+function TimeSelector({
   value,
-  terceiros,
+  times,
   onChange,
 }: {
   value: string
-  terceiros: ClassificacaoTime[]
+  times: TimeDisponivel[]
   onChange: (nome: string) => void
 }) {
-  if (terceiros.length === 0) {
+  if (times.length === 0) {
     return (
       <p className="text-xs text-gray-400 italic text-center py-2">
         Nenhum grupo encerrado ainda
@@ -40,8 +42,8 @@ function TerceiroSelector({
   }
 
   return (
-    <div className="flex flex-col gap-1 max-h-52 overflow-y-auto pr-1">
-      {terceiros.map((t, i) => (
+    <div className="flex flex-col gap-1 max-h-56 overflow-y-auto pr-1">
+      {times.map(t => (
         <button
           key={t.nome}
           type="button"
@@ -52,9 +54,9 @@ function TerceiroSelector({
               : 'bg-gray-100 text-[#002776] active:bg-gray-200'
           }`}
         >
-          <span>{i + 1}. {t.nome}</span>
+          <span>{t.nome}</span>
           <span className={`text-xs shrink-0 ${value === t.nome ? 'text-white/70' : 'text-gray-400'}`}>
-            {t.pts}pts · SG{t.sg >= 0 ? '+' : ''}{t.sg}
+            {t.info}
           </span>
         </button>
       ))}
@@ -63,7 +65,7 @@ function TerceiroSelector({
 }
 
 // ─── Card de jogo ─────────────────────────────────────────────────────────
-function JogoCard({ jogo, terceiros }: { jogo: Jogo; terceiros: ClassificacaoTime[] }) {
+function JogoCard({ jogo, timesDisponiveis }: { jogo: Jogo; timesDisponiveis: TimeDisponivel[] }) {
   const [placarA, setPlacarA] = useState(jogo.placar_a ?? 0)
   const [placarB, setPlacarB] = useState(jogo.placar_b ?? 0)
   const [timeA, setTimeA]     = useState(jogo.time_a)
@@ -72,15 +74,10 @@ function JogoCard({ jogo, terceiros }: { jogo: Jogo; terceiros: ClassificacaoTim
   const [isPending, start]    = useTransition()
 
   const enc = jogo.status === 'encerrado'
-
-  const slotAutoA     = isSlotAuto(jogo.time_a)
-  const slotAutoB     = isSlotAuto(jogo.time_b)
-  const slotTerceiroA = isSlotTerceiro(jogo.time_a)
-  const slotTerceiroB = isSlotTerceiro(jogo.time_b)
-  // Qualquer lado que não seja um slot auto → permite lápis
-  const mostrarLapis  = !enc && !(slotAutoA && slotAutoB)
-  // Só mostra placar e botão fechar quando ambos os times estão resolvidos
-  const timesResolvidos = !isSlot(jogo.time_a) && !isSlot(jogo.time_b)
+  const slotA = isSlot(jogo.time_a)
+  const slotB = isSlot(jogo.time_b)
+  const timesResolvidos = !slotA && !slotB
+  const mostrarLapis = !enc
 
   const dataFormatada = new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit', month: '2-digit',
@@ -92,23 +89,16 @@ function JogoCard({ jogo, terceiros }: { jogo: Jogo; terceiros: ClassificacaoTim
   }
 
   function renderLadoEdit(
-    nome: string,
+    nomeOriginal: string,
     value: string,
     label: string,
     onChange: (v: string) => void,
   ) {
-    if (isSlotAuto(nome)) {
-      return (
-        <div className="px-3 py-2 bg-blue-50 rounded-lg text-xs text-blue-500 font-semibold">
-          {nome} · Auto (aguardando grupo)
-        </div>
-      )
-    }
-    if (isSlotTerceiro(nome)) {
+    if (isSlot(nomeOriginal)) {
       return (
         <div className="flex flex-col gap-1">
           <p className="text-[11px] text-gray-400 font-black uppercase tracking-wide">{label}</p>
-          <TerceiroSelector value={value} terceiros={terceiros} onChange={onChange} />
+          <TimeSelector value={value} times={timesDisponiveis} onChange={onChange} />
         </div>
       )
     }
@@ -163,11 +153,11 @@ function JogoCard({ jogo, terceiros }: { jogo: Jogo; terceiros: ClassificacaoTim
           /* Modo visualização */
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className={`font-black text-base leading-tight ${slotAutoA || slotTerceiroA ? 'text-gray-400 italic text-sm' : 'text-[#002776]'}`}>
+              <p className={`font-black text-base leading-tight ${slotA ? 'text-gray-400 italic text-sm' : 'text-[#002776]'}`}>
                 {jogo.time_a}
               </p>
               <p className="text-gray-400 text-xs my-0.5">vs</p>
-              <p className={`font-black text-base leading-tight ${slotAutoB || slotTerceiroB ? 'text-gray-400 italic text-sm' : 'text-[#002776]'}`}>
+              <p className={`font-black text-base leading-tight ${slotB ? 'text-gray-400 italic text-sm' : 'text-[#002776]'}`}>
                 {jogo.time_b}
               </p>
             </div>
@@ -175,7 +165,7 @@ function JogoCard({ jogo, terceiros }: { jogo: Jogo; terceiros: ClassificacaoTim
               <button
                 onClick={() => setEditTimes(true)}
                 className="p-2 rounded-xl bg-gray-100 text-gray-400 active:bg-gray-200 transition-colors"
-                title={slotTerceiroA || slotTerceiroB ? 'Selecionar 3º colocado' : 'Editar times'}
+                title={slotA || slotB ? 'Selecionar times' : 'Editar times'}
               >
                 <Pencil className="w-4 h-4" />
               </button>
@@ -241,8 +231,7 @@ function JogoCard({ jogo, terceiros }: { jogo: Jogo; terceiros: ClassificacaoTim
           </div>
         )}
 
-        {/* Reabrir even when times were slots at close time */}
-        {!editTimes && enc && !timesResolvidos && (
+        {enc && !timesResolvidos && (
           <button
             disabled={isPending}
             onClick={() => start(() => reabrirJogo(jogo.id))}
@@ -253,12 +242,9 @@ function JogoCard({ jogo, terceiros }: { jogo: Jogo; terceiros: ClassificacaoTim
           </button>
         )}
 
-        {/* Aviso quando times ainda não definidos */}
         {!editTimes && !enc && !timesResolvidos && (
           <p className="text-[11px] text-gray-400 italic text-center">
-            {slotTerceiroA || slotTerceiroB
-              ? 'Toque no lápis para selecionar o 3º colocado'
-              : 'Aguardando encerramento do(s) grupo(s)'}
+            Toque no lápis para definir os times
           </p>
         )}
       </div>
@@ -270,12 +256,12 @@ function JogoCard({ jogo, terceiros }: { jogo: Jogo; terceiros: ClassificacaoTim
 function Secao({
   titulo,
   jogos,
-  terceiros = [],
+  timesDisponiveis = [],
   defaultOpen = false,
 }: {
   titulo: string
   jogos: Jogo[]
-  terceiros?: ClassificacaoTime[]
+  timesDisponiveis?: TimeDisponivel[]
   defaultOpen?: boolean
 }) {
   const [open, setOpen] = useState(defaultOpen)
@@ -296,7 +282,7 @@ function Secao({
 
       {open && (
         <div className="flex flex-col gap-3 pb-2">
-          {jogos.map(j => <JogoCard key={j.id} jogo={j} terceiros={terceiros} />)}
+          {jogos.map(j => <JogoCard key={j.id} jogo={j} timesDisponiveis={timesDisponiveis} />)}
         </div>
       )}
     </div>
@@ -314,8 +300,6 @@ const FASES_ORDEM = [
 ]
 
 export default function AdminJogos({ jogos }: { jogos: Jogo[] }) {
-  const [isPending, start] = useTransition()
-
   const grupos   = jogos.filter(j => j.grupo)
   const knockout = jogos.filter(j => !j.grupo)
 
@@ -333,15 +317,30 @@ export default function AdminJogos({ jogos }: { jogos: Jogo[] }) {
     return acc
   }, {})
 
-  // Calcula os 3ºs colocados de grupos já encerrados, rankeados (melhor primeiro)
-  const terceirosDisponiveis: ClassificacaoTime[] = Object.entries(jogosPorGrupo)
+  // Todos os times classificados dos grupos encerrados (1º, 2º e 3º)
+  // ordenados por: posição (1º→2º→3º) e grupo (A→L)
+  const timesDisponiveis: TimeDisponivel[] = Object.entries(jogosPorGrupo)
     .filter(([, jogosG]) => jogosG.every(j => j.status === 'encerrado'))
-    .flatMap(([, jogosG]) => {
+    .sort(([a], [b]) => a.localeCompare(b))
+    .flatMap(([grupo, jogosG]) => {
       const cls = calcularClassificacao(jogosG)
-      return cls[2] ? [cls[2]] : []
+      const result: TimeDisponivel[] = []
+      if (cls[0]) result.push({ nome: cls[0].nome, info: `1º Grupo ${grupo}` })
+      if (cls[1]) result.push({ nome: cls[1].nome, info: `2º Grupo ${grupo}` })
+      if (cls[2]) result.push({ nome: cls[2].nome, info: `3º Grupo ${grupo}` })
+      return result
     })
-    .sort((a, b) => b.pts - a.pts || b.sg - a.sg || b.gp - a.gp || a.nome.localeCompare(b.nome))
-    .slice(0, 8) // máximo 8 melhores terceiros
+
+  // Adiciona vencedores de jogos mata-mata já encerrados (para fases avançadas)
+  const knockoutWinners: TimeDisponivel[] = knockout
+    .filter(j => j.status === 'encerrado' && !isSlot(j.time_a) && !isSlot(j.time_b) && j.placar_a !== null && j.placar_b !== null)
+    .map(j => {
+      const vencedor = j.placar_a! >= j.placar_b! ? j.time_a : j.time_b
+      return { nome: vencedor, info: `V. Jogo ${j.id} · ${j.fase ?? ''}` }
+    })
+    .filter(t => !timesDisponiveis.some(d => d.nome === t.nome))
+
+  const todosTimesDisponiveis = [...timesDisponiveis, ...knockoutWinners]
 
   const fasesKnockout = FASES_ORDEM.filter(f => jogosPorFase[f])
 
@@ -356,24 +355,13 @@ export default function AdminJogos({ jogos }: { jogos: Jogo[] }) {
       {/* Mata-mata */}
       {fasesKnockout.length > 0 && (
         <>
-          <div className="flex items-center justify-between px-1 pt-4 pb-1">
-            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Mata-Mata</p>
-            <button
-              disabled={isPending}
-              onClick={() => start(() => resolverSlots())}
-              className="flex items-center gap-1 text-[11px] text-[#002776] font-bold disabled:opacity-40 active:opacity-60"
-              title="Resolver confrontos automaticamente a partir dos grupos encerrados"
-            >
-              <RefreshCw className={`w-3 h-3 ${isPending ? 'animate-spin' : ''}`} />
-              Resolver confrontos
-            </button>
-          </div>
+          <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest px-1 pt-4 pb-1">Mata-Mata</p>
           {fasesKnockout.map(f => (
             <Secao
               key={f}
               titulo={f}
               jogos={jogosPorFase[f]}
-              terceiros={terceirosDisponiveis}
+              timesDisponiveis={todosTimesDisponiveis}
               defaultOpen={f === '16 avos de Final'}
             />
           ))}
