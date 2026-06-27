@@ -102,14 +102,10 @@ export default async function MataMataPage() {
     })
   }
 
-  // Jogos do bracket (ordenados por posição correta da FIFA)
+  // Jogos do bracket ordenados pela posição definida no admin
   const jogosParaBracket = jogos
     .filter(j => ['16 avos de Final', 'Oitavas de Final', 'Quartas de Final', 'Semifinal', 'Final'].includes(j.fase ?? ''))
-    .sort((a, b) => {
-      const pa = BRACKET_ORDER.indexOf(a.id)
-      const pb = BRACKET_ORDER.indexOf(b.id)
-      return (pa === -1 ? 9999 : pa) - (pb === -1 ? 9999 : pb)
-    })
+    .sort((a, b) => (a.posicao_bracket ?? 9999) - (b.posicao_bracket ?? 9999))
 
   // Fases visíveis na lista
   const fasesAbaixo = FASE_ORDEM.filter(fase => jogos.some(j => j.fase === fase))

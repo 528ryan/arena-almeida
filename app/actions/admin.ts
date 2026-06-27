@@ -103,6 +103,18 @@ export async function reabrirJogo(jogoId: number) {
   revalidateAll()
 }
 
+export async function atualizarPosicaoBracket(jogoId: number, posicao: number) {
+  await assertAdmin()
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
+    .from('jogos')
+    .update({ posicao_bracket: posicao })
+    .eq('id', jogoId)
+  if (error) throw error
+  revalidatePath('/admin')
+  revalidatePath('/mata-mata')
+}
+
 export async function atualizarTimes(jogoId: number, time_a: string, time_b: string) {
   await assertAdmin()
   const adminClient = createAdminClient()

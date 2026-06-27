@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { CheckCircle2, ChevronDown, ChevronUp, Pencil, Lock, Unlock, RefreshCw } from 'lucide-react'
-import { fecharJogo, reabrirJogo, atualizarTimes, recalcularPontosMataMatata } from '@/app/actions/admin'
+import { fecharJogo, reabrirJogo, atualizarTimes, recalcularPontosMataMatata, atualizarPosicaoBracket } from '@/app/actions/admin'
 import { calcularClassificacao } from '@/lib/classificacao'
 import type { Jogo, ClassificacaoTime } from '@/types'
 
@@ -72,6 +72,8 @@ function JogoCard({ jogo, timesDisponiveis }: { jogo: Jogo; timesDisponiveis: Ti
   const [timeB, setTimeB]     = useState(jogo.time_b)
   const [editTimes, setEditTimes] = useState(false)
   const [isPending, start]    = useTransition()
+  const [posEdit, setPosEdit] = useState(false)
+  const [posVal, setPosVal]   = useState(String(jogo.posicao_bracket ?? ''))
 
   const enc = jogo.status === 'encerrado'
   const slotA = isSlot(jogo.time_a)
@@ -121,10 +123,47 @@ function JogoCard({ jogo, timesDisponiveis }: { jogo: Jogo; timesDisponiveis: Ti
         enc ? 'bg-[#009C3B]' : 'bg-[#002776]'
       }`}>
         <span className="text-white text-xs font-semibold">{dataFormatada}</span>
-        {enc
-          ? <span className="flex items-center gap-1 text-white text-xs font-bold"><CheckCircle2 className="w-3.5 h-3.5" /> Encerrado</span>
-          : <span className="text-white/60 text-xs">Pendente</span>
-        }
+        <div className="flex items-center gap-2">
+          {enc
+            ? <span className="flex items-center gap-1 text-white text-xs font-bold"><CheckCircle2 className="w-3.5 h-3.5" /> Encerrado</span>
+            : <span className="text-white/60 text-xs">Pendente</span>
+          }
+          {/* Badge de posição no bracket — só para mata-mata */}
+          {jogo.posicao_bracket !== undefined && jogo.grupo === null && (
+            posEdit ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={posVal}
+                  onChange={e => setPosVal(e.target.value)}
+                  className="w-12 text-center text-xs font-bold rounded px-1 py-0.5 text-[#002776]"
+                  autoFocus
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      const n = parseInt(posVal)
+                      if (!isNaN(n)) start(() => atualizarPosicaoBracket(jogo.id, n))
+                      setPosEdit(false)
+                    }
+                    if (e.key === 'Escape') { setPosVal(String(jogo.posicao_bracket ?? '')); setPosEdit(false) }
+                  }}
+                  onBlur={() => {
+                    const n = parseInt(posVal)
+                    if (!isNaN(n)) start(() => atualizarPosicaoBracket(jogo.id, n))
+                    setPosEdit(false)
+                  }}
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => setPosEdit(true)}
+                className="bg-white/20 text-white text-[10px] font-black px-1.5 py-0.5 rounded hover:bg-white/30 transition-colors tabular-nums"
+                title="Posição no bracket — clique para editar"
+              >
+                #{jogo.posicao_bracket}
+              </button>
+            )
+          )}
+        </div>
       </div>
 
       <div className="px-4 py-4 flex flex-col gap-4">

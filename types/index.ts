@@ -9,6 +9,7 @@ export type Jogo = {
   status: 'pendente' | 'encerrado'
   grupo: string | null
   fase: string | null
+  posicao_bracket: number | null
 }
 
 export type ClassificacaoTime = {
