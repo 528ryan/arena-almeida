@@ -133,7 +133,7 @@ export default function GameCard({ jogo, palpiteInicial, userId, nomeUsuario, av
       travado && !isEncerrado ? 'border-[#009C3B]' : 'border-gray-100'
     }`}>
       {/* Header */}
-      <div className={`px-4 py-2 flex items-center justify-between ${aoVivo ? 'bg-[#009C3B]' : 'bg-[#002776]'}`}>
+      <div className={`px-4 py-2 flex items-center justify-between ${aoVivo ? 'bg-red-600' : 'bg-[#009C3B]'}`}>
         <span className="text-white text-xs font-semibold uppercase tracking-wide">
           {dataFormatada}
         </span>

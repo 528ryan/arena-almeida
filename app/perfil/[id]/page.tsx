@@ -58,7 +58,7 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
   const iniciais = perfil.nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#013d16]">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header temático */}
       <header
         className="px-4 pt-10 pb-8 shadow-lg relative overflow-hidden"
@@ -162,7 +162,7 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
 
         {/* Palpites */}
         <section>
-          <h2 className="text-white font-black text-base mb-3">Palpites</h2>
+          <h2 className="text-[#009C3B] font-black text-base mb-3">Palpites</h2>
           <PalpitesAgrupados palpites={palpites} />
         </section>
       </main>

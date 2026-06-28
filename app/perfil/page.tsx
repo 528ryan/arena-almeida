@@ -155,7 +155,7 @@ export default async function PerfilPage() {
   const textoAcento = tema?.texto ?? 'escuro'
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#013d16]">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header temático */}
       <header
         className="px-4 pt-10 pb-8 shadow-lg relative overflow-hidden"
@@ -243,8 +243,8 @@ export default async function PerfilPage() {
         {gruposComJogos.length > 0 ? (
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <LayoutGrid className="w-5 h-5 text-white/70" strokeWidth={2.5} />
-              <h2 className="text-white font-black text-base">Meus Palpites</h2>
+              <LayoutGrid className="w-5 h-5 text-[#009C3B]" strokeWidth={2.5} />
+              <h2 className="text-[#009C3B] font-black text-base">Meus Palpites</h2>
             </div>
             <div className="flex flex-col gap-3">
               {gruposComJogos.map(([grupo, jogosGrupo]) => (
@@ -297,11 +297,11 @@ export default async function PerfilPage() {
           const encerradosComPalpite = palpites.filter(p => p.jogo?.status === 'encerrado')
           return (
             <section>
-              <h2 className="text-white font-black text-base mb-3">
+              <h2 className="text-[#009C3B] font-black text-base mb-3">
                 Resultados
               </h2>
               {encerradosComPalpite.length === 0 ? (
-                <p className="text-center text-white/40 py-10 text-sm">
+                <p className="text-center text-gray-400 py-10 text-sm">
                   Nenhum jogo encerrado ainda.
                 </p>
               ) : (

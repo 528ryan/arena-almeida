@@ -111,9 +111,9 @@ export default async function MataMataPage() {
   const fasesAbaixo = FASE_ORDEM.filter(fase => jogos.some(j => j.fase === fase))
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#013d16]">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <header className="bg-[#002776] px-4 pt-4 pb-0 sticky top-0 z-30 shadow-lg">
+      <header className="bg-[#009C3B] px-4 pt-4 pb-0 sticky top-0 z-30 shadow-lg">
         <div className="max-w-md mx-auto">
           <div className="flex items-center gap-3 pb-4">
             <Link
@@ -141,8 +141,8 @@ export default async function MataMataPage() {
         {jogosParaBracket.length > 0 && (
           <section className="px-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-white font-black text-base">Chaveamento</h2>
-              <span className="text-[10px] text-white/40 font-semibold">← deslize para ver →</span>
+              <h2 className="text-[#009C3B] font-black text-base">Chaveamento</h2>
+              <span className="text-[10px] text-gray-400 font-semibold">← deslize para ver →</span>
             </div>
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3">
               <BracketView

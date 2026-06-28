@@ -145,13 +145,13 @@ export default async function Home() {
   const totalParticipantes = (todosPerfilData ?? []).length
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#013d16]">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <header className="bg-[#002776] px-4 py-4 sticky top-0 z-10 shadow-lg">
+      <header className="bg-[#009C3B] px-4 py-4 sticky top-0 z-10 shadow-lg">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#009C3B] flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-[#FFDF00]" />
+            <div className="w-10 h-10 rounded-full bg-[#FFDF00] flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-[#002776]" />
             </div>
             <div>
               <h1 className="text-white font-black text-xl leading-none">Arena Almeida</h1>
@@ -245,8 +245,8 @@ export default async function Home() {
         {/* Seção: Mata-Mata */}
         <section>
           <div className="flex items-center gap-2 mb-3">
-            <GitMerge className="w-5 h-5 text-white/70" strokeWidth={2.5} />
-            <h2 className="text-white font-black text-lg">Mata-Mata</h2>
+            <GitMerge className="w-5 h-5 text-[#009C3B]" strokeWidth={2.5} />
+            <h2 className="text-[#009C3B] font-black text-lg">Mata-Mata</h2>
           </div>
 
           <Link href="/mata-mata">
@@ -271,12 +271,12 @@ export default async function Home() {
         {/* Seção: Fase de Grupos */}
         <section>
           <div className="flex items-center gap-2 mb-3">
-            <LayoutGrid className="w-5 h-5 text-white/70" strokeWidth={2.5} />
-            <h2 className="text-white font-black text-lg">Fase de Grupos</h2>
+            <LayoutGrid className="w-5 h-5 text-[#009C3B]" strokeWidth={2.5} />
+            <h2 className="text-[#009C3B] font-black text-lg">Fase de Grupos</h2>
           </div>
 
           {gruposOrdenados.length === 0 ? (
-            <p className="text-center text-white/40 py-8">Nenhum grupo cadastrado ainda.</p>
+            <p className="text-center text-gray-400 py-8">Nenhum grupo cadastrado ainda.</p>
           ) : (
             <GruposFiltro
             grupos={gruposOrdenados}
@@ -291,7 +291,7 @@ export default async function Home() {
         </section>
       </main>
 
-      <footer className="text-center py-4 text-xs text-white/30 pb-20">
+      <footer className="text-center py-4 text-xs text-gray-400 pb-20">
         Arena Almeida · Bolão da Família
       </footer>
     </div>

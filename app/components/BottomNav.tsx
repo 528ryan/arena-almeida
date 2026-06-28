@@ -24,8 +24,8 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-20 bg-[#002776]"
-      style={{ boxShadow: '0 -4px 24px rgba(0,39,118,0.35)' }}
+      className="fixed bottom-0 left-0 right-0 z-20 bg-[#009C3B]"
+      style={{ boxShadow: '0 -4px 24px rgba(0,156,59,0.4)' }}
     >
       <div className="max-w-md mx-auto flex items-center"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 8px)' }}

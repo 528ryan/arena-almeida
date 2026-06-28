@@ -57,7 +57,7 @@ export default function GruposFiltro({ grupos, jogosGrupo = [] }: { grupos: Grup
             className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
               filtro === 'todos'
                 ? 'bg-[#002776] text-white'
-                : 'bg-white/10 text-white/60 border border-white/20'
+                : 'bg-white text-gray-500 border border-gray-200'
             }`}
           >
             Todos
@@ -67,7 +67,7 @@ export default function GruposFiltro({ grupos, jogosGrupo = [] }: { grupos: Grup
             className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
               filtro === 'pendentes'
                 ? 'bg-[#009C3B] text-white'
-                : 'bg-white/10 text-white/60 border border-white/20'
+                : 'bg-white text-gray-500 border border-gray-200'
             }`}
           >
             Faltam palpites
@@ -79,7 +79,7 @@ export default function GruposFiltro({ grupos, jogosGrupo = [] }: { grupos: Grup
       )}
 
       {lista.length === 0 ? (
-        <p className="text-center text-white/40 py-6 text-sm">Todos os palpites feitos!</p>
+        <p className="text-center text-gray-400 py-6 text-sm">Todos os palpites feitos!</p>
       ) : (
         <div className="grid grid-cols-3 gap-2.5">
           {lista.map(({ letra, total, cravados, semPalpite, aoVivo }) => {
