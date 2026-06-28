@@ -39,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={`${geist.variable} h-full`}>
-      <body className="min-h-full bg-[#f0fdf4] pb-16">
+      <body className="min-h-full bg-[#0f1f3d] pb-16">
         {children}
         <BottomNav />
         <IOSInstallBanner />

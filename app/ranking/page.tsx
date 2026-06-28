@@ -427,7 +427,7 @@ export default async function RankingPage({
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-[#0f1f3d]">
       {/* Header sticky */}
       <header className="bg-[#002776] px-4 pt-4 sticky top-0 z-10 shadow-lg">
         <div className="max-w-md mx-auto">
@@ -471,11 +471,11 @@ export default async function RankingPage({
       <main className="flex-1 max-w-md mx-auto w-full px-4 py-5 flex flex-col gap-5 pb-24">
         {abaAtiva === 'artilharia' ? (
           <>
-            <p className="text-center text-xs text-gray-400 font-semibold -mb-2">
+            <p className="text-center text-xs text-white/40 font-semibold -mb-2">
               Quem mais acertou o placar exato
             </p>
             {artilheiros.every(a => a.cravadas === 0) ? (
-              <p className="text-center text-gray-400 mt-20 text-sm">Nenhum placar exato ainda.</p>
+              <p className="text-center text-white/40 mt-20 text-sm">Nenhum placar exato ainda.</p>
             ) : (
               <section className="flex flex-col gap-2">
                 {artilheiros.map(a => (
@@ -489,7 +489,7 @@ export default async function RankingPage({
             )}
           </>
         ) : todosComStats.length === 0 ? (
-          <p className="text-center text-gray-400 mt-20 text-sm">Nenhum participante ainda.</p>
+          <p className="text-center text-white/40 mt-20 text-sm">Nenhum participante ainda.</p>
         ) : (
           <>
             {/* Minha posição (fora do pódio) */}
@@ -540,7 +540,7 @@ export default async function RankingPage({
               <section className="flex flex-col gap-2">
                 {/* Cabeçalho com legenda */}
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest shrink-0">
+                  <span className="text-[10px] font-black text-white/40 uppercase tracking-widest shrink-0">
                     Últimos 5 jogos
                   </span>
                   <Legenda />
