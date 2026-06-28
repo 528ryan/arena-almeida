@@ -57,6 +57,11 @@ export default function GameCard({ jogo, palpiteInicial, userId, nomeUsuario, av
   const isEncerrado    = jogo.status === 'encerrado'
   const prazoEncerrado = isPrazoEncerrado(jogo)
   const teamsUndefined = isSlot(jogo.time_a) || isSlot(jogo.time_b)
+  const aoVivo = !isEncerrado && (() => {
+    if (!jogo.data_hora) return false
+    const diff = (Date.now() - new Date(jogo.data_hora).getTime()) / 60_000
+    return diff >= 0 && diff <= 110
+  })()
   // O seletor fica bloqueado se: jogo encerrado, prazo esgotado, palpite travado, ou times indefinidos
   const bloqueado = isEncerrado || prazoEncerrado || travado || teamsUndefined
 
@@ -124,22 +129,29 @@ export default function GameCard({ jogo, palpiteInicial, userId, nomeUsuario, av
 
   return (
     <div className={`bg-white rounded-2xl shadow-md overflow-hidden border ${
+      aoVivo ? 'border-[#009C3B] shadow-[0_0_0_2px_rgba(0,156,59,0.2)]' :
       travado && !isEncerrado ? 'border-[#009C3B]' : 'border-gray-100'
     }`}>
       {/* Header */}
-      <div className="bg-[#002776] px-4 py-2 flex items-center justify-between">
+      <div className={`px-4 py-2 flex items-center justify-between ${aoVivo ? 'bg-[#009C3B]' : 'bg-[#002776]'}`}>
         <span className="text-white text-xs font-semibold uppercase tracking-wide">
           {dataFormatada}
         </span>
         <div className="flex items-center gap-2">
           {saveStatus === 'saving' && <Loader2 className="w-4 h-4 text-[#FFDF00] animate-spin" />}
           {saveStatus === 'saved' && <CheckCircle className="w-4 h-4 text-[#FFDF00]" />}
+          {aoVivo && (
+            <span className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full font-black flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FFDF00] animate-pulse block" />
+              AO VIVO
+            </span>
+          )}
           {isEncerrado && (
             <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold">
               Encerrado
             </span>
           )}
-          {!isEncerrado && prazoEncerrado && (
+          {!isEncerrado && !aoVivo && prazoEncerrado && (
             <span className="text-xs bg-orange-400 text-white px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
               <Lock className="w-3 h-3" /> Prazo encerrado
             </span>

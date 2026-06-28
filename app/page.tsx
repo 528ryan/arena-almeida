@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { Trophy, GitMerge, LayoutGrid } from 'lucide-react'
+import Image from 'next/image'
+import { Trophy, GitMerge, LayoutGrid, Star, Medal } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import LogoutButton from '@/app/components/LogoutButton'
 import ContadorRegressivo from '@/app/components/ContadorRegressivo'
@@ -22,6 +23,7 @@ export default async function Home() {
     { data: jogosDiaData },
     { data: jogoAnteriorData },
     { data: jogoPosteriorData },
+    { data: todosPerfilData },
   ] = await Promise.all([
     supabase.from('jogos').select('id, grupo, status, data_hora').not('grupo', 'is', null),
     supabase.auth.getUser(),
@@ -43,6 +45,7 @@ export default async function Home() {
       .gte('data_hora', tomorrowStartUTC.toISOString())
       .order('data_hora', { ascending: true })
       .limit(1),
+    supabase.from('perfis').select('id, nome, foto_url, pontos').order('pontos', { ascending: false }),
   ])
 
   // Top scorers for finished games today
@@ -128,6 +131,19 @@ export default async function Home() {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([letra, dados]) => ({ letra, ...dados }))
 
+  // Hero: user's perfil + ranking position with tie-awareness
+  const perfilUsuario = user ? (todosPerfilData ?? []).find(p => p.id === user.id) : null
+  let posicaoUsuario: number | null = null
+  if (perfilUsuario && todosPerfilData) {
+    const sorted = [...todosPerfilData].sort((a, b) => (b.pontos ?? 0) - (a.pontos ?? 0))
+    let pos = 1
+    for (let i = 0; i < sorted.length; i++) {
+      if (i > 0 && sorted[i].pontos !== sorted[i - 1].pontos) pos = i + 1
+      if (sorted[i].id === user!.id) { posicaoUsuario = pos; break }
+    }
+  }
+  const totalParticipantes = (todosPerfilData ?? []).length
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header */}
@@ -147,6 +163,78 @@ export default async function Home() {
       </header>
 
       <main className="flex-1 max-w-md mx-auto w-full px-4 py-6 flex flex-col gap-5">
+
+        {/* Hero: boas-vindas do usuário */}
+        {perfilUsuario && (
+          <div className="relative overflow-hidden rounded-2xl shadow-lg bg-[#002776]">
+            {/* decorative circles */}
+            <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/5" />
+            <div className="absolute -bottom-8 -left-8 w-40 h-40 rounded-full bg-white/5" />
+
+            <div className="relative px-5 py-4 flex items-center gap-4">
+              {/* Avatar */}
+              <div className="shrink-0">
+                {perfilUsuario.foto_url ? (
+                  <Image
+                    src={perfilUsuario.foto_url}
+                    alt={perfilUsuario.nome ?? ''}
+                    width={52}
+                    height={52}
+                    className="w-[52px] h-[52px] rounded-full object-cover border-2 border-[#FFDF00]"
+                  />
+                ) : (
+                  <div className="w-[52px] h-[52px] rounded-full bg-[#FFDF00] flex items-center justify-center border-2 border-[#FFDF00]">
+                    <span className="text-[#002776] font-black text-xl">
+                      {(perfilUsuario.nome ?? '?')[0].toUpperCase()}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Name + points */}
+              <div className="flex-1 min-w-0">
+                <p className="text-white/60 text-xs font-semibold leading-none mb-0.5">Bem-vindo de volta</p>
+                <p className="text-white font-black text-lg leading-tight truncate">
+                  {perfilUsuario.nome ?? 'Participante'}
+                </p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Star className="w-3.5 h-3.5 text-[#FFDF00] fill-[#FFDF00]" />
+                  <span className="text-[#FFDF00] font-bold text-sm">
+                    {perfilUsuario.pontos ?? 0} pts
+                  </span>
+                </div>
+              </div>
+
+              {/* Rank badge */}
+              {posicaoUsuario !== null && (
+                <Link href="/ranking" className="shrink-0 flex flex-col items-center gap-0.5 active:opacity-70">
+                  <div className={`w-14 h-14 rounded-full flex flex-col items-center justify-center border-2 gap-0.5 ${
+                    posicaoUsuario === 1 ? 'bg-[#FFDF00] border-[#FFDF00]' :
+                    posicaoUsuario === 2 ? 'bg-gray-300 border-gray-400' :
+                    posicaoUsuario === 3 ? 'bg-amber-600 border-amber-700' :
+                    'bg-white/10 border-white/20'
+                  }`}>
+                    {posicaoUsuario <= 3 && (
+                      <Medal className={`w-4 h-4 ${
+                        posicaoUsuario === 1 ? 'text-[#002776]' :
+                        posicaoUsuario === 2 ? 'text-gray-700' :
+                        'text-white'
+                      }`} />
+                    )}
+                    <span className={`font-black text-xs leading-none ${
+                      posicaoUsuario === 1 ? 'text-[#002776]' :
+                      posicaoUsuario === 2 ? 'text-gray-700' :
+                      'text-white'
+                    }`}>
+                      {posicaoUsuario}º
+                    </span>
+                  </div>
+                  <span className="text-white/50 text-[9px] font-semibold">de {totalParticipantes}</span>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
 
         <JogosDia
           jogos={jogosDia}

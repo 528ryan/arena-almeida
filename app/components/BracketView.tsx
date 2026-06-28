@@ -1,10 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { Lock, Check } from 'lucide-react'
+import { Lock, Check, Zap } from 'lucide-react'
 import PalpiteSheet from './PalpiteSheet'
 import FlagImg from './FlagImg'
 import type { Jogo, Palpite } from '@/types'
+
+const LIVE_MIN = 110
+
+function isAoVivo(jogo: Jogo): boolean {
+  if (jogo.status === 'encerrado') return false
+  if (!jogo.data_hora) return false
+  const diff = (Date.now() - new Date(jogo.data_hora).getTime()) / 60_000
+  return diff >= 0 && diff <= LIVE_MIN
+}
 
 // ─── Layout ────────────────────────────────────────────────────────────────
 const NODE_H  = 56
@@ -40,12 +49,11 @@ const ROUNDS = [
 // ─── Nó ────────────────────────────────────────────────────────────────────
 interface GameNodeProps {
   jogo: Jogo | undefined
-  hasPalpite: boolean
-  travado: boolean
+  palpite?: Palpite
   onClick: () => void
 }
 
-function GameNode({ jogo, hasPalpite, travado, onClick }: GameNodeProps) {
+function GameNode({ jogo, palpite, onClick }: GameNodeProps) {
   if (!jogo) {
     return (
       <div
@@ -58,13 +66,20 @@ function GameNode({ jogo, hasPalpite, travado, onClick }: GameNodeProps) {
   }
 
   const enc      = jogo.status === 'encerrado'
+  const aoVivo   = isAoVivo(jogo)
   const winnerA  = enc && jogo.placar_a !== null && jogo.placar_b !== null && jogo.placar_a > jogo.placar_b
   const winnerB  = enc && jogo.placar_a !== null && jogo.placar_b !== null && jogo.placar_b > jogo.placar_a
   const isSlot   = (name: string) => /^(V\.|P\.|[12][A-L]$|3º)/.test(name)
 
-  const borderCls = enc
+  // Quem o usuário apostou que avança
+  const apostouA = palpite && palpite.gols_a > palpite.gols_b
+  const apostouB = palpite && palpite.gols_b > palpite.gols_a
+
+  const borderCls = aoVivo
+    ? 'border-[#009C3B] shadow-[0_0_0_2px_rgba(0,156,59,0.25)]'
+    : enc
     ? 'border-[#009C3B]'
-    : hasPalpite
+    : palpite
     ? 'border-[#002776]/40'
     : 'border-gray-200'
 
@@ -76,20 +91,25 @@ function GameNode({ jogo, hasPalpite, travado, onClick }: GameNodeProps) {
       className={`rounded-xl border overflow-hidden text-[11px] shadow-sm text-left
         active:scale-95 transition-transform cursor-pointer bg-white ${borderCls}`}
     >
-      {/* Indicador de palpite */}
-      {hasPalpite && (
+      {/* Badge ao vivo */}
+      {aoVivo && (
+        <span className="absolute top-0.5 right-1 z-10 flex items-center gap-0.5" style={{ pointerEvents: 'none' }}>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#009C3B] animate-pulse block" />
+          <span className="text-[8px] font-black text-[#009C3B] leading-none">AO VIVO</span>
+        </span>
+      )}
+
+      {/* Indicador de palpite travado (quando não ao vivo) */}
+      {!aoVivo && palpite?.travado && (
         <span className="absolute top-1 right-1 z-10" style={{ pointerEvents: 'none' }}>
-          {travado
-            ? <Lock className="w-2.5 h-2.5 text-[#009C3B]" />
-            : <span className="w-2 h-2 rounded-full bg-[#009C3B] block" />
-          }
+          <Lock className="w-2.5 h-2.5 text-[#009C3B]" />
         </span>
       )}
 
       {/* Time A */}
       <div
         className={`flex items-center gap-1 px-2 border-b border-gray-100 ${
-          winnerA ? 'bg-[#FFDF00]/20' : ''
+          winnerA ? 'bg-[#FFDF00]/20' : apostouA ? 'bg-[#002776]/5' : ''
         }`}
         style={{ height: NODE_H / 2 }}
       >
@@ -104,13 +124,18 @@ function GameNode({ jogo, hasPalpite, travado, onClick }: GameNodeProps) {
             {jogo.placar_a}
           </span>
         )}
-        {winnerA && <Check className="w-3 h-3 text-[#009C3B] shrink-0" />}
+        {winnerA
+          ? <Check className="w-3 h-3 text-[#009C3B] shrink-0" />
+          : apostouA && !enc
+          ? <Zap className="w-2.5 h-2.5 text-[#002776]/50 shrink-0 fill-[#002776]/20" />
+          : null
+        }
       </div>
 
       {/* Time B */}
       <div
         className={`flex items-center gap-1 px-2 ${
-          winnerB ? 'bg-[#FFDF00]/20' : ''
+          winnerB ? 'bg-[#FFDF00]/20' : apostouB ? 'bg-[#002776]/5' : ''
         }`}
         style={{ height: NODE_H / 2 }}
       >
@@ -125,7 +150,12 @@ function GameNode({ jogo, hasPalpite, travado, onClick }: GameNodeProps) {
             {jogo.placar_b}
           </span>
         )}
-        {winnerB && <Check className="w-3 h-3 text-[#009C3B] shrink-0" />}
+        {winnerB
+          ? <Check className="w-3 h-3 text-[#009C3B] shrink-0" />
+          : apostouB && !enc
+          ? <Zap className="w-2.5 h-2.5 text-[#002776]/50 shrink-0 fill-[#002776]/20" />
+          : null
+        }
       </div>
     </button>
   )
@@ -207,8 +237,7 @@ export default function BracketView({ jogos, jogoTerceiro, palpitesPorJogo, user
                     <div key={j} style={{ position: 'absolute', top: POSITIONS[ri][j], left: leftBase }}>
                       <GameNode
                         jogo={jogo}
-                        hasPalpite={!!palpite}
-                        travado={palpite?.travado ?? false}
+                        palpite={palpite}
                         onClick={() => {
                           if (!jogo) return
                           const slot = /^(V\.|P\.|[12][A-L]$|3[oº°])/.test(jogo.time_a) || /^(V\.|P\.|[12][A-L]$|3[oº°])/.test(jogo.time_b)
@@ -239,8 +268,7 @@ export default function BracketView({ jogos, jogoTerceiro, palpitesPorJogo, user
                 </p>
                 <GameNode
                   jogo={jogoTerceiro}
-                  hasPalpite={!!palpite}
-                  travado={palpite?.travado ?? false}
+                  palpite={palpite}
                   onClick={() => setJogoSelecionado(jogoTerceiro)}
                 />
               </div>
