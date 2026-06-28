@@ -427,7 +427,7 @@ export default async function RankingPage({
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0f1f3d]">
+    <div className="min-h-screen flex flex-col bg-[#013d16]">
       {/* Header sticky */}
       <header className="bg-[#002776] px-4 pt-4 sticky top-0 z-10 shadow-lg">
         <div className="max-w-md mx-auto">

@@ -145,7 +145,7 @@ export default async function Home() {
   const totalParticipantes = (todosPerfilData ?? []).length
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0f1f3d]">
+    <div className="min-h-screen flex flex-col bg-[#013d16]">
       {/* Header */}
       <header className="bg-[#002776] px-4 py-4 sticky top-0 z-10 shadow-lg">
         <div className="max-w-md mx-auto flex items-center justify-between">

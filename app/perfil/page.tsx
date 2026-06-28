@@ -155,7 +155,7 @@ export default async function PerfilPage() {
   const textoAcento = tema?.texto ?? 'escuro'
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0f1f3d]">
+    <div className="min-h-screen flex flex-col bg-[#013d16]">
       {/* Header temático */}
       <header
         className="px-4 pt-10 pb-8 shadow-lg relative overflow-hidden"

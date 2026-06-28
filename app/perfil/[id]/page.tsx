@@ -58,7 +58,7 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
   const iniciais = perfil.nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0f1f3d]">
+    <div className="min-h-screen flex flex-col bg-[#013d16]">
       {/* Header temático */}
       <header
         className="px-4 pt-10 pb-8 shadow-lg relative overflow-hidden"
