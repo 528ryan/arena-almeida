@@ -267,7 +267,7 @@ export default async function GrupoPage({ params }: Props) {
         ))}
       </main>
 
-      <footer className="text-center py-4 text-xs text-gray-400 pb-20">
+      <footer className="text-center py-4 text-xs text-white/30 pb-20">
         Arena Almeida · Bolão da Família
       </footer>
     </div>

@@ -7,7 +7,7 @@ export default function TabelaGrupo({ jogos }: { jogos: Jogo[] }) {
   const temResultados = jogos.some(j => j.status === 'encerrado')
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-100 mb-4">
+    <div className="overflow-x-auto rounded-xl border border-white/10 mb-4 bg-white">
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-[#002776] text-white">
@@ -43,7 +43,7 @@ export default function TabelaGrupo({ jogos }: { jogos: Jogo[] }) {
           ))}
         </tbody>
       </table>
-      <p className="text-[10px] text-gray-400 px-3 py-1.5 flex gap-3">
+      <p className="text-[10px] text-gray-500 px-3 py-1.5 flex gap-3">
         <span>🟢 Classificados para os 16 avos</span>
         <span>🔴 Eliminado</span>
       </p>
